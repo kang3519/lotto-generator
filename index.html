@@ -3,32 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>로또 번호 생성기 – v13</title>
+  <title>로또 번호 생성기 – v16</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.5.0/kakao.min.js" defer
-          onload="Kakao.init('13aaec94bd811a32bbb688c8b1a37ba2');"></script>
+  <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.5.0/kakao.min.js" defer></script>
   <style>
     :root{--red:#e74c3c;--orange:#f39c12;--green:#27ae60;--blue:#2980b9;--purple:#8e44ad;--primary:#3498db}
-    *{box-sizing:border-box}
-    body{font-family:Arial,Helvetica,sans-serif;background:#f9fafb;margin:0;display:flex;justify-content:center;padding:24px;min-height:100vh;}
-    .container{width:100%;max-width:760px;display:flex;flex-direction:column;align-items:stretch;gap:16px}
-    .card{background:#fff;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.08);padding:16px}
-    .card h2,.card h3,.card h1{text-align:center;margin:8px 0}
-    .set{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:6px 0}
-    .num{width:36px;height:36px;line-height:36px;border-radius:50%;text-align:center;color:#fff;font-weight:600}
-    .r1{background:var(--red)}.r2{background:var(--orange)}.r3{background:var(--green)}.r4{background:var(--blue)}.r5{background:var(--purple)}
+    *{box-sizing:border-box;}
+    html,body{width:100%;height:auto;min-height:0;margin:0;padding:0;background:#f9fafb;}
+    body{font-family:Arial,Helvetica,sans-serif;display:flex;justify-content:center;padding:24px;}
+    .container{width:100%;max-width:760px;display:flex;flex-direction:column;align-items:stretch;gap:16px;}
+    .card{background:#fff;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.08);padding:16px;}
+    .card h2,.card h3,.card h1{text-align:center;margin:8px 0;}
+    .set{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:6px 0;}
+    .num{width:36px;height:36px;line-height:36px;border-radius:50%;text-align:center;color:#fff;font-weight:600;}
+    .r1{background:var(--red)}.r2{background:var(--orange)}.r3{background:var(--green)}.r4{background:var(--blue)}.r5{background:var(--purple);}
     .score{font-size:.95em;text-align:center;color:#444;margin-bottom:6px;font-weight:500;}
-    .btn{display:inline-flex;align-items:center;gap:6px;margin:6px auto;padding:8px 20px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:1rem}
-    .btn:hover{background:#2378be}
-    .progress-bar{width:100%;background:#eee;border-radius:6px;overflow:hidden;height:12px}
-    .progress-bar-inner{height:100%;background:var(--primary);width:0;transition:width .25s}
-    .share-row{display:flex;justify-content:center;gap:14px;margin-top:6px;flex-wrap:wrap}
-    .share-btn img{width:28px;height:28px}
-    #error{color:var(--red);text-align:center;margin-top:6px}
-    canvas{max-width:100%}
-    html,body{height:100%}
-    @media (max-width:700px){.container{padding:0 3vw;}}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;margin:6px auto;padding:8px 20px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:1rem;}
+    .btn:hover{background:#2378be;}
+    .progress-bar{width:100%;background:#eee;border-radius:6px;overflow:hidden;height:12px;}
+    .progress-bar-inner{height:100%;background:var(--primary);width:0;transition:width .25s;}
+    .share-row{display:flex;justify-content:center;gap:14px;margin-top:6px;flex-wrap:wrap;}
+    .share-btn img{width:28px;height:28px;}
+    #error{color:var(--red);text-align:center;margin-top:6px;}
+    canvas{max-width:100%;}
+    @media (max-width:700px){.container{padding:0 2vw;}}
   </style>
 </head>
 <body>
@@ -46,8 +45,10 @@
     <section class="card">
       <h2>일반 번호 2세트</h2>
       <div id="random"></div>
-      <button class="btn" onclick="generate()">새로운 번호 생성</button>
-      <button class="btn" id="btn-shot">📸 캡처 PNG</button>
+      <div style="display:flex;justify-content:center;gap:12px;margin-top:12px;">
+        <button class="btn" onclick="generate()">새로운 번호 생성</button>
+        <button class="btn" id="btn-shot">📸 캡처 PNG</button>
+      </div>
     </section>
     <section class="card">
       <h3>최근 100회 빈도 상위 6개</h3>
@@ -65,8 +66,28 @@
     <div id="error"></div>
   </div>
 <script>
-const PROXIES=[u=>`https://thingproxy.freeboard.io/fetch/${u}`,u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,u=>`https://corsproxy.io/?${encodeURIComponent(u)}`];
-async function fetchJSON(u){for(const p of PROXIES){try{return await fetch(p(u)).then(r=>r.json());}catch{}}return null;}
+const KAKAO_APP_KEY = '13aaec94bd811a32bbb688c8b1a37ba2'; // 본인 앱키로 변경 가능
+
+// 카카오 SDK 준비 (defer 대응)
+function kakaoInitIfNeeded() {
+  if (window.Kakao && !window.Kakao.isInitialized()) {
+    Kakao.init(KAKAO_APP_KEY);
+  }
+}
+if (document.readyState === 'complete') kakaoInitIfNeeded();
+else window.addEventListener('DOMContentLoaded', kakaoInitIfNeeded);
+
+const PROXIES=[
+  u=>`https://thingproxy.freeboard.io/fetch/${u}`,
+  u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u=>`https://corsproxy.io/?${encodeURIComponent(u)}`
+];
+async function fetchJSON(u){
+  for(const p of PROXIES){
+    try{return await fetch(p(u)).then(r=>r.json());}catch{}
+  }
+  return null;
+}
 const colorClass=n=>n<=10?'r1':n<=20?'r2':n<=30?'r3':n<=40?'r4':'r5';
 const ball=n=>`<span class="num ${colorClass(n)}">${n}</span>`;
 function score(set, freqMap) { return set.reduce((a,n)=>a+(freqMap[n]||0),0); }
@@ -128,14 +149,14 @@ document.getElementById('share-twitter').onclick=()=>openWin(`https://twitter.co
 document.getElementById('share-copy').onclick=async()=>{await navigator.clipboard.writeText(window.shareText);alert('복사되었습니다!');};
 // 카카오톡 PC/웹 공유 (이미지 없이)
 document.getElementById('share-kakao').onclick=()=>{
-  if(!window.Kakao?.isInitialized()) return alert('Kakao SDK 미초기화');
+  kakaoInitIfNeeded();
+  if(!window.Kakao?.isInitialized()) return alert('카카오 SDK 미초기화');
   window.Kakao.Share.sendDefault({
     objectType:'feed',
     content:{
       title:'로또 번호 생성기 - AI 추천',
       description: window.shareText.replace(/^https?:\/\/\S+\n?/,'').slice(0,100),
-      link:{ mobileWebUrl:location.href, webUrl:location.href }
-      // imageUrl: window.shareImage  ← 이 부분 없음!
+      link:{ mobileWebUrl:location.href, webUrl: location.href }
     },
     buttons: [
       { title: '웹에서 보기', link: { mobileWebUrl: location.href, webUrl: location.href } }
