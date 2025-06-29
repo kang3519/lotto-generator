@@ -5,21 +5,72 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>로또 번호 생성기</title>
   <style>
-    .lotto-container { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 40px auto; background: #fafafa; border: 1px solid #ddd; border-radius: 8px; }
-    .lotto-container h1 { font-size: 1.4em; margin-bottom: 10px; }
-    .numbers { margin: 8px 0; font-size: 1.1em; }
-    .btn { margin: 8px 0; padding: 6px 12px; cursor: pointer; }
-    .error { color: red; margin: 10px 0; }
+    /* 전역 스타일 */
+    body { background: #f0f2f5; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .lotto-container {
+      background: #fff;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      padding: 24px;
+      border-radius: 12px;
+      width: 100%; max-width: 480px;
+      box-sizing: border-box;
+      font-family: 'Spoqa Han Sans', sans-serif;
+    }
+    .lotto-container h1 {
+      margin: 0 0 16px;
+      font-size: 1.6em;
+      color: #333;
+      text-align: center;
+    }
+    .last-draw { text-align: center; margin-bottom: 24px; color: #555; }
+    .section-title { margin: 16px 0 8px; font-weight: 500; color: #444; }
+    .set-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    .number-badge {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-weight: bold;
+      margin: 0 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .range-1 { background: #e74c3c; }
+    .range-2 { background: #f39c12; }
+    .range-3 { background: #27ae60; }
+    .range-4 { background: #2980b9; }
+    .range-5 { background: #8e44ad; }
+    .btn {
+      display: block;
+      margin: 16px auto 0;
+      background: #3498db;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 24px;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .btn:hover { background-color: #2980b9; }
+    .error { text-align: center; color: #e74c3c; margin-top: 12px; }
   </style>
 </head>
 <body>
   <div class="lotto-container">
     <h1>로또 번호 생성기 🎉</h1>
-    <div class="last-draw numbers">로딩 중...</div>
-    <h2>추천 번호 (가중 랜덤 40개 풀) 3세트</h2>
-    <div class="recommended"></div>
-    <h2>일반 조합 2세트</h2>
-    <div class="random-sets"></div>
+    <div class="last-draw">로딩 중...</div>
+    <div>
+      <div class="section-title">추천 번호 (상위 40개 풀이중 무작위) 3세트</div>
+      <div class="recommended"></div>
+    </div>
+    <div>
+      <div class="section-title">일반 조합 2세트</div>
+      <div class="random-sets"></div>
+    </div>
     <button id="generate-btn" class="btn">추천 번호 갱신</button>
     <div class="error"></div>
   </div>
@@ -38,7 +89,7 @@
       const promises = [];
       for (let i = 1; i <= latestNo; i++) {
         promises.push(
-          proxy(API_URL + '?drwNo=' + i)
+          proxy(`${API_URL}?drwNo=${i}`)
             .then(r => r.ok ? r.json() : null)
             .catch(() => null)
         );
@@ -70,19 +121,33 @@
       const arr = pool.slice();
       const pick = [];
       while (pick.length < 6 && arr.length) {
-        pick.push(arr.splice(Math.floor(Math.random() * arr.length), 1)[0]);
+        const idx = Math.floor(Math.random() * arr.length);
+        pick.push(arr.splice(idx, 1)[0]);
       }
       return pick.sort((a, b) => a - b);
+    }
+
+    function getRangeClass(n) {
+      if (n <= 10) return 'range-1';
+      if (n <= 20) return 'range-2';
+      if (n <= 30) return 'range-3';
+      if (n <= 40) return 'range-4';
+      return 'range-5';
     }
 
     function render(containerSelector, sets) {
       const container = document.querySelector(containerSelector);
       container.innerHTML = '';
       sets.forEach(nums => {
-        const div = document.createElement('div');
-        div.className = 'numbers';
-        div.textContent = nums.join(', ');
-        container.appendChild(div);
+        const row = document.createElement('div');
+        row.className = 'set-container';
+        nums.forEach(n => {
+          const span = document.createElement('span');
+          span.className = 'number-badge ' + getRangeClass(n);
+          span.textContent = n;
+          row.appendChild(span);
+        });
+        container.appendChild(row);
       });
     }
 
@@ -93,7 +158,7 @@
         document.querySelector('.last-draw').textContent = `지난 회차 (${latest.drwNo}) 번호: ${lastNums.join(', ')}`;
 
         const history = await fetchAll(latest.drwNo);
-        const pool = calcPool(history);
+        const pool    = calcPool(history);
         render('.recommended', Array.from({ length: 3 }, () => pickNumbers(pool)));
         render('.random-sets', Array.from({ length: 2 }, () => pickNumbers(Array.from({ length: 45 }, (_, i) => i + 1))));
       } catch (e) {
@@ -107,4 +172,3 @@
   </script>
 </body>
 </html>
-
