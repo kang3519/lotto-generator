@@ -17,13 +17,13 @@
     :root{--red:#e74c3c;--orange:#f39c12;--green:#27ae60;--blue:#2980b9;--purple:#8e44ad;--primary:#3498db}
     *{box-sizing:border-box}
     body{font-family:Arial,Helvetica,sans-serif;background:#f9fafb;margin:0;display:flex;justify-content:center;padding:24px}
-    .container{width:100%;max-width:760px;display:flex;flex-direction:column;align-items:center;gap:16px}
+    .container{width:100%;max-width:760px;display:flex;flex-direction:column;align-items:stretch;gap:16px}
     .card{background:#fff;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.08);padding:16px}
     .card h2,.card h3,.card h1{text-align:center;margin:8px 0}
     .set{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:6px 0}
     .num{width:36px;height:36px;line-height:36px;border-radius:50%;text-align:center;color:#fff;font-weight:600}
     .r1{background:var(--red)}.r2{background:var(--orange)}.r3{background:var(--green)}.r4{background:var(--blue)}.r5{background:var(--purple)}
-    .btn{display:inline-flex;align-items:center;gap:6px;margin:6px;padding:8px 20px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:1rem}
+    .btn{display:inline-flex;align-items:center;gap:6px;margin:6px auto;padding:8px 20px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:1rem}
     .btn:hover{background:#2378be}
     .progress-bar{width:100%;background:#eee;border-radius:6px;overflow:hidden;height:12px}
     .progress-bar-inner{height:100%;background:var(--primary);width:0;transition:width .25s}
@@ -38,7 +38,7 @@
     <!-- 카드: 최근 회차 -->
     <section class="card" id="card-latest">
       <h1 style="background:linear-gradient(90deg,var(--red),var(--orange),var(--green),var(--blue),var(--purple));-webkit-background-clip:text;color:transparent;font-weight:700">로또 번호 생성기 🎉</h1>
-      <h3 id="last-info">최근 회차 로딩 중...</h3>
+      <h3 id="last-info">통계를 통한 AI 번호 추천번호 생성중...</h3>
       <div id="last-numbers" class="set"></div>
       <div class="progress-bar"><div class="progress-bar-inner"></div></div>
     </section>
