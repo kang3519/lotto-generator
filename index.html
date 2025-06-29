@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>로또 번호 생성기 – v10</title>
+  <title>로또 번호 생성기 – v11</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.5.0/kakao.min.js" defer
@@ -11,7 +11,7 @@
   <style>
     :root{--red:#e74c3c;--orange:#f39c12;--green:#27ae60;--blue:#2980b9;--purple:#8e44ad;--primary:#3498db}
     *{box-sizing:border-box}
-    body{font-family:Arial,Helvetica,sans-serif;background:#f9fafb;margin:0;display:flex;justify-content:center;padding:24px}
+    body{font-family:Arial,Helvetica,sans-serif;background:#f9fafb;margin:0;display:flex;justify-content:center;padding:24px;min-height:100vh;}
     .container{width:100%;max-width:760px;display:flex;flex-direction:column;align-items:stretch;gap:16px}
     .card{background:#fff;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.08);padding:16px}
     .card h2,.card h3,.card h1{text-align:center;margin:8px 0}
@@ -27,6 +27,8 @@
     .share-btn img{width:28px;height:28px}
     #error{color:var(--red);text-align:center;margin-top:6px}
     canvas{max-width:100%}
+    html,body{height:100%}
+    @media (max-width:700px){.container{padding:0 3vw;}}
   </style>
 </head>
 <body>
@@ -115,13 +117,33 @@ async function generate(){
     chart=new Chart(document.getElementById('freqChart'),{type:'bar',data:{labels:Object.keys(freq),datasets:[{data:Object.values(freq),backgroundColor:Object.keys(freq).map(n=>({r1:'#e74c3c',r2:'#f39c12',r3:'#27ae60',r4:'#2980b9',r5:'#8e44ad'}[colorClass(+n)]))}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
     const url=location.href.split('?')[0];
     window.shareText=`${url}\n[추천]\n${recSets.map(s=>s.join(', ')).join('\n')}\n[일반]\n${rndSets.map(s=>s.join(', ')).join('\n')}`;
+    window.shareImage = null;
+    // 자동 캡처(카카오톡 등 이미지 공유용) 생성
+    html2canvas(document.body).then(canvas => {
+      window.shareImage = canvas.toDataURL('image/png');
+    });
   }catch(e){console.error(e);err.textContent=e;}
 }
-document.getElementById('btn-shot').onclick=()=>html2canvas(document.querySelector('#random').parentElement).then(c=>{const a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='lotto.png';a.click();});
+// 캡처 PNG 저장
+document.getElementById('btn-shot').onclick=()=>html2canvas(document.body).then(c=>{const a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='lotto.png';a.click();});
+// 트위터 공유
 const openWin=(u)=>window.open(u,'_blank');
 document.getElementById('share-twitter').onclick=()=>openWin(`https://twitter.com/intent/tweet?text=${encodeURIComponent(window.shareText)}`);
+// 링크 복사
 document.getElementById('share-copy').onclick=async()=>{await navigator.clipboard.writeText(window.shareText);alert('복사되었습니다!');};
-document.getElementById('share-kakao').onclick=()=>{if(!window.Kakao?.isInitialized())return alert('Kakao SDK 미초기화');Kakao.Share.sendDefault({objectType:'text',text:window.shareText,link:{mobile_web_url:location.href,web_url:location.href}});};
+// 카카오톡 PC/웹 공유
+document.getElementById('share-kakao').onclick=()=>{
+  if(!window.Kakao?.isInitialized()) return alert('Kakao SDK 미초기화');
+  window.Kakao.Share.sendDefault({
+    objectType:'feed',
+    content:{
+      title:'로또 번호 추천 결과',
+      description: window.shareText.replace(/^https?:\/\/\S+\n?/,'').slice(0,200),
+      imageUrl: window.shareImage || 'https://kang3519.github.io/lotto-generator/og-lotto.png',
+      link:{ mobileWebUrl:location.href, webUrl:location.href }
+    }
+  });
+};
 document.addEventListener('DOMContentLoaded',generate);
 </script>
 </body>
