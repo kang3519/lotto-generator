@@ -1,112 +1,147 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>로또 번호 생성기</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-body{font-family:Arial,sans-serif;background:#f9fafb;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}
-.container{background:#fff;padding:20px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.1);width:100%;max-width:600px}
-h1,h2,.last-draw{text-align:center;margin:12px 0}
-.set{display:flex;justify-content:center;margin:8px 0;flex-wrap:wrap}
-.num{width:36px;height:36px;line-height:36px;border-radius:50%;text-align:center;margin:4px;color:#fff;font-weight:bold}
-.r1{background:#e74c3c}.r2{background:#f39c12}.r3{background:#27ae60}.r4{background:#2980b9}.r5{background:#8e44ad}
-.btn{display:block;margin:20px auto 0;padding:10px 20px;background:#3498db;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:1em}
-.btn:hover{background:#2980b9}
-.error{text-align:center;color:#e74c3c;margin-top:10px}
-.progress-bar{width:100%;background:#eee;border-radius:6px;overflow:hidden;margin:10px 0;height:14px}
-.progress-bar-inner{height:100%;background:#3498db;width:0;transition:width 0.3s}
-#chart-container{margin-top:20px}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>로또 번호 생성기 – 안정 v3</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body{font-family:Arial,sans-serif;background:#f9fafb;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}
+    .container{background:#fff;padding:20px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.08);width:100%;max-width:640px}
+    h1,h2,.last-draw{text-align:center;margin:12px 0}
+    .set{display:flex;justify-content:center;margin:8px 0;flex-wrap:wrap}
+    .num{width:36px;height:36px;line-height:36px;border-radius:50%;text-align:center;margin:4px;color:#fff;font-weight:bold}
+    .r1{background:#e74c3c}.r2{background:#f39c12}.r3{background:#27ae60}.r4{background:#2980b9}.r5{background:#8e44ad}
+    .btn{display:block;margin:20px auto 0;padding:10px 24px;background:#3498db;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:1em}
+    .btn:hover{background:#2980b9}
+    .progress-bar{width:100%;background:#eee;border-radius:6px;overflow:hidden;margin:10px 0;height:14px}
+    .progress-bar-inner{height:100%;background:#3498db;width:0;transition:width .25s}
+    #error{color:#e74c3c;text-align:center;margin-top:10px}
+    #chart-container{margin-top:20px}
+  </style>
 </head>
 <body>
 <div class="container">
   <h1>로또 번호 생성기 🎉</h1>
   <div class="last-draw">로딩 중...</div>
+
   <div class="progress-bar"><div class="progress-bar-inner"></div></div>
-  <div class="section-title">추천 번호 3세트</div>
+
+  <h2>추천 번호 3세트</h2>
   <div id="recommended"></div>
-  <div class="section-title">일반 번호 2세트</div>
+
+  <h2>일반 번호 2세트</h2>
   <div id="random"></div>
+
   <button class="btn" onclick="generate()">번호 새로고침</button>
-  <div id="chart-container"><canvas id="freqChart"></canvas></div>
-  <div class="error" id="error"></div>
+
+  <div id="chart-container"><canvas id="freqChart" height="240"></canvas></div>
+  <div id="error"></div>
 </div>
+
 <script>
-function colorClass(n){return n<=10?'r1':n<=20?'r2':n<=30?'r3':n<=40?'r4':'r5';}
-function render(container, sets){
-  container.innerHTML = '';
-  sets.forEach(set => {
-    const div = document.createElement('div');
-    div.className = 'set';
-    set.forEach(n => {
-      const span = document.createElement('div');
-      span.className = 'num ' + colorClass(n);
-      span.textContent = n;
-      div.appendChild(span);
+/* -------- 네트워크 유틸 (이중 프록시) -------- */
+const PROXIES=[
+  u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
+  u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+];
+async function fetchJSON(url){
+  for(const build of PROXIES){
+    try{
+      const txt=await fetch(build(url),{cache:'no-store'}).then(r=>r.text());
+      return JSON.parse(txt);
+    }catch{ /* 다음 프록시 시도 */ }
+  }
+  throw new Error('네트워크 실패');
+}
+
+/* -------- 헬퍼 -------- */
+const colorClass=n=>n<=10?'r1':n<=20?'r2':n<=30?'r3':n<=40?'r4':'r5';
+function render(container,sets){
+  container.innerHTML='';
+  sets.forEach(arr=>{
+    const row=document.createElement('div');row.className='set';
+    arr.forEach(n=>{
+      const el=document.createElement('div');
+      el.className='num '+colorClass(n);el.textContent=n;
+      row.appendChild(el);
     });
-    container.appendChild(div);
+    container.appendChild(row);
   });
 }
-function pickNumbers(pool){
-  const a=pool.slice(),p=[];
-  while(p.length<6&&a.length)p.push(a.splice(Math.random()*a.length|0,1)[0]);
-  return p.sort((x,y)=>x-y);
+function pick(pool){
+  const src=pool.slice(),out=[];
+  while(out.length<6&&src.length)
+    out.push(src.splice(Math.random()*src.length|0,1)[0]);
+  return out.sort((a,b)=>a-b);
 }
-async function getLatestDraw(){
-  let drwNo=1200;
-  while(drwNo>0){
-    const data=await fetch(`https://corsproxy.io/?https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drwNo}`)
-    .then(r=>r.text()).then(t=>JSON.parse(t)).catch(()=>null);
-    if(data&&data.returnValue==='success') return data;
-    drwNo--;
+
+/* -------- 최신 회차 추정 (60회만 탐색) -------- */
+async function guessLatest(){
+  const cached=+localStorage.getItem('lastDrwNo')||0;
+  const weeks =Math.floor((Date.now()-Date.UTC(2002,11,7))/604800000)+5;
+  let start   =Math.min(Math.max(cached,weeks),1200);
+
+  for(let i=0;i<60;i++){
+    const no=start-i;
+    if(no<1)break;
+    try{
+      const d=await fetchJSON(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${no}`);
+      if(d.returnValue==='success'){localStorage.setItem('lastDrwNo',no);return no;}
+    }catch{}
   }
-  throw new Error('최신 회차를 찾지 못했습니다.');
+  if(cached) return cached;
+  throw new Error('최신 회차 탐색 실패');
 }
+
+/* -------- 메인 -------- */
 async function generate(){
+  const err=document.getElementById('error');err.textContent='';
+  const bar=document.querySelector('.progress-bar-inner');bar.style.width='0%';
   try{
-    document.getElementById('error').textContent = '';
-    document.getElementById('recommended').innerHTML='';
-    document.getElementById('random').innerHTML='';
-    document.getElementById('freqChart').getContext('2d').clearRect(0,0,600,400);
-    const latest = await getLatestDraw();
-    const lastNums = Array.from({length:6}, (_,i)=>latest['drwtNo'+(i+1)]);
-    document.querySelector('.last-draw').textContent = `지난 회차 (${latest.drwNo}) 번호: ${lastNums.join(', ')}`;
-    const freq={}, bar=document.querySelector('.progress-bar-inner');
-    for(let i=1;i<=latest.drwNo;i++){
-      const h=await fetch(`https://corsproxy.io/?https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${i}`)
-      .then(r=>r.text()).then(t=>JSON.parse(t)).catch(()=>null);
-      if(h&&h.returnValue==='success'){
-        for(let j=1;j<=6;j++){
-          const n=h['drwtNo'+j];
+    const latest=await guessLatest();
+    const targets=[...Array(100).keys()].map(i=>latest-i);
+    const settled=await Promise.allSettled(
+      targets.map(no=>fetchJSON(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${no}`).catch(()=>null))
+    );
+
+    const freq={}, total=settled.length;
+    let ok=0;
+    settled.forEach((r,i)=>{
+      if(r.status==='fulfilled'&&r.value&&r.value.returnValue==='success'){
+        ok++;
+        for(let k=1;k<=6;k++){
+          const n=r.value['drwtNo'+k];
           freq[n]=(freq[n]||0)+1;
         }
       }
-      bar.style.width=`${(i/latest.drwNo*100).toFixed(1)}%`;
-    }
-    const pool=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).slice(0,40).map(Number);
-    const recommendedSets=Array.from({length:3},()=>pickNumbers(pool));
-    const randomSets=Array.from({length:2},()=>pickNumbers(Array.from({length:45},(_,i)=>i+1)));
-    render(document.getElementById('recommended'),recommendedSets);
-    render(document.getElementById('random'),randomSets);
+      bar.style.width=`${((i+1)/total*100).toFixed(0)}%`;
+    });
 
-    // Chart
+    const latestData=settled[0].status==='fulfilled'?settled[0].value:null;
+    document.querySelector('.last-draw').textContent=
+      latestData
+      ?`최근회차 (${latest}) 번호: ${[...Array(6)].map((_,i)=>latestData['drwtNo'+(i+1)]).join(', ')}`
+      :`최근회차 (${latest}) 번호: 조회 실패`;
+
+    const pool=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).slice(0,40).map(Number);
+    render(document.getElementById('recommended'),Array.from({length:3},()=>pick(pool)));
+    render(document.getElementById('random'),     Array.from({length:2},()=>pick([...Array(45)].map((_,i)=>i+1))));
+
     const ctx=document.getElementById('freqChart').getContext('2d');
-    if(window.freqChart) window.freqChart.destroy();
+    if(window.freqChart && typeof window.freqChart.destroy==='function') window.freqChart.destroy();
     window.freqChart=new Chart(ctx,{
       type:'bar',
-      data:{
-        labels:Object.keys(freq),
-        datasets:[{label:'출현 빈도',data:Object.values(freq),backgroundColor:'#3498db'}]
-      },
-      options:{scales:{y:{beginAtZero:true}}}
+      data:{labels:Object.keys(freq),datasets:[{data:Object.values(freq),backgroundColor:'#3498db'}]},
+      options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
     });
+
   }catch(e){
     console.error(e);
-    document.getElementById('error').textContent = '데이터를 불러오는 중 오류가 발생했습니다.';
+    err.textContent=e.message;
   }
 }
+
 document.addEventListener('DOMContentLoaded',generate);
 </script>
 </body>
