@@ -1,1 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>로또 번호 생성기</title>
+  <style>
+    .lotto-container { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 40px auto; background: #fafafa; border: 1px solid #ddd; border-radius: 8px; }
+    .lotto-container h1 { font-size: 1.4em; margin-bottom: 10px; }
+    .numbers { margin: 8px 0; font-size: 1.1em; }
+    .btn { margin: 8px 0; padding: 6px 12px; cursor: pointer; }
+    .error { color: red; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <div class="lotto-container">
+    <h1>로또 번호 생성기 🎉</h1>
+    <div class="last-draw numbers">로딩 중...</div>
+    <h2>추천 번호 (가중 랜덤 40개 풀) 3세트</h2>
+    <div class="recommended"></div>
+    <h2>일반 조합 2세트</h2>
+    <div class="random-sets"></div>
+    <button id="generate-btn" class="btn">추천 번호 갱신</button>
+    <div class="error"></div>
+  </div>
+
+  <script>
+    const API_URL = 'https://www.dhlottery.co.kr/common.do?method=getLottoNumber';
+    const proxy = url => fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url));
+
+    async function fetchLatest() {
+      const res = await proxy(API_URL);
+      if (!res.ok) throw new Error('최신 회차 로드 실패');
+      return res.json();
+    }
+
+    async function fetchAll(latestNo) {
+      const promises = [];
+      for (let i = 1; i <= latestNo; i++) {
+        promises.push(
+          proxy(API_URL + '?drwNo=' + i)
+            .then(r => r.ok ? r.json() : null)
+            .catch(() => null)
+        );
+      }
+      const results = await Promise.all(promises);
+      return results.filter(d => d && d.returnValue === 'success');
+    }
+
+    function freqMap(history) {
+      const map = {};
+      history.forEach(d => {
+        for (let i = 1; i <= 6; i++) {
+          const n = d['drwtNo' + i];
+          map[n] = (map[n] || 0) + 1;
+        }
+      });
+      return map;
+    }
+
+    function calcPool(history) {
+      const map = freqMap(history);
+      return Object.keys(map)
+        .sort((a, b) => map[b] - map[a])
+        .slice(0, 40)
+        .map(Number);
+    }
+
+    function pickNumbers(pool) {
+      const arr = pool.slice();
+      const pick = [];
+      while (pick.length < 6 && arr.length) {
+        pick.push(arr.splice(Math.floor(Math.random() * arr.length), 1)[0]);
+      }
+      return pick.sort((a, b) => a - b);
+    }
+
+    function render(containerSelector, sets) {
+      const container = document.querySelector(containerSelector);
+      container.innerHTML = '';
+      sets.forEach(nums => {
+        const div = document.createElement('div');
+        div.className = 'numbers';
+        div.textContent = nums.join(', ');
+        container.appendChild(div);
+      });
+    }
+
+    async function init() {
+      try {
+        const latest = await fetchLatest();
+        const lastNums = Array.from({ length: 6 }, (_, i) => latest['drwtNo' + (i + 1)]);
+        document.querySelector('.last-draw').textContent = `지난 회차 (${latest.drwNo}) 번호: ${lastNums.join(', ')}`;
+
+        const history = await fetchAll(latest.drwNo);
+        const pool = calcPool(history);
+        render('.recommended', Array.from({ length: 3 }, () => pickNumbers(pool)));
+        render('.random-sets', Array.from({ length: 2 }, () => pickNumbers(Array.from({ length: 45 }, (_, i) => i + 1))));
+      } catch (e) {
+        console.error(e);
+        document.querySelector('.error').textContent = '데이터 처리 중 오류가 발생했습니다.';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+    document.getElementById('generate-btn').addEventListener('click', init);
+  </script>
+</body>
+</html>
 
