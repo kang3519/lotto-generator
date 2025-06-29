@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>로또 번호 생성기</title>
   <style>
-    /* 전역 스타일 */
     body { background: #f0f2f5; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
     .lotto-container {
       background: #fff;
@@ -16,27 +15,13 @@
       box-sizing: border-box;
       font-family: 'Spoqa Han Sans', sans-serif;
     }
-    .lotto-container h1 {
-      margin: 0 0 16px;
-      font-size: 1.6em;
-      color: #333;
-      text-align: center;
-    }
+    .lotto-container h1 { margin: 0 0 16px; font-size: 1.6em; color: #333; text-align: center; }
     .last-draw { text-align: center; margin-bottom: 24px; color: #555; }
     .section-title { margin: 16px 0 8px; font-weight: 500; color: #444; }
-    .set-container {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 16px;
-    }
+    .set-container { display: flex; justify-content: center; margin-bottom: 12px; }
     .number-badge {
-      width: 36px; height: 36px;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      color: #fff;
-      font-weight: bold;
-      margin: 0 4px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: bold; margin: 0 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .range-1 { background: #e74c3c; }
     .range-2 { background: #f39c12; }
@@ -44,16 +29,8 @@
     .range-4 { background: #2980b9; }
     .range-5 { background: #8e44ad; }
     .btn {
-      display: block;
-      margin: 16px auto 0;
-      background: #3498db;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 10px 24px;
-      font-size: 1em;
-      cursor: pointer;
-      transition: background-color 0.2s;
+      display: block; margin: 16px auto 0; background: #3498db; color: #fff; border: none;
+      border-radius: 6px; padding: 10px 24px; font-size: 1em; cursor: pointer; transition: background-color 0.2s;
     }
     .btn:hover { background-color: #2980b9; }
     .error { text-align: center; color: #e74c3c; margin-top: 12px; }
@@ -61,10 +38,10 @@
 </head>
 <body>
   <div class="lotto-container">
-    <h1>로또 번호 생성기 🎉</h1>
+    <h1>로또 번호 생성기 🎉<br><small>동행복권 기준</small></h1>
     <div class="last-draw">로딩 중...</div>
     <div>
-      <div class="section-title">추천 번호 (상위 40개 풀이중 무작위) 3세트</div>
+      <div class="section-title">추천 번호 (빈도 상위 40개 풀 중 랜덤) 3세트</div>
       <div class="recommended"></div>
     </div>
     <div>
@@ -76,50 +53,50 @@
   </div>
 
   <script>
+    // 동행복권 공식 API
     const API_URL = 'https://www.dhlottery.co.kr/common.do?method=getLottoNumber';
     const proxy = url => fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url));
 
     async function fetchLatest() {
-      const res = await proxy(API_URL);
-      if (!res.ok) throw new Error('최신 회차 로드 실패');
-      return res.json();
+      const r = await proxy(API_URL);
+      if (!r.ok) throw new Error('최신 회차 로드 실패');
+      return r.json();
     }
 
     async function fetchAll(latestNo) {
-      const promises = [];
-      for (let i = 1; i <= latestNo; i++) {
-        promises.push(
-          proxy(`${API_URL}?drwNo=${i}`)
-            .then(r => r.ok ? r.json() : null)
+      const calls = [];
+      for (let no = 1; no <= latestNo; no++) {
+        calls.push(
+          proxy(API_URL + '&drwNo=' + no)
+            .then(res => res.ok ? res.json() : null)
             .catch(() => null)
         );
       }
-      const results = await Promise.all(promises);
-      return results.filter(d => d && d.returnValue === 'success');
+      const data = await Promise.all(calls);
+      return data.filter(d => d && d.returnValue === 'success');
     }
 
-    function freqMap(history) {
-      const map = {};
-      history.forEach(d => {
+    function getFreqMap(hist) {
+      const freq = {};
+      hist.forEach(d => {
         for (let i = 1; i <= 6; i++) {
-          const n = d['drwtNo' + i];
-          map[n] = (map[n] || 0) + 1;
+          const n = d['drwtNo' + i]; freq[n] = (freq[n] || 0) + 1;
         }
       });
-      return map;
+      return freq;
     }
 
-    function calcPool(history) {
-      const map = freqMap(history);
-      return Object.keys(map)
-        .sort((a, b) => map[b] - map[a])
+    function calcPool(hist) {
+      const freq = getFreqMap(hist);
+      return Object.keys(freq)
+        .sort((a, b) => freq[b] - freq[a])
         .slice(0, 40)
         .map(Number);
     }
 
     function pickNumbers(pool) {
-      const arr = pool.slice();
       const pick = [];
+      const arr = pool.slice();
       while (pick.length < 6 && arr.length) {
         const idx = Math.floor(Math.random() * arr.length);
         pick.push(arr.splice(idx, 1)[0]);
@@ -135,9 +112,9 @@
       return 'range-5';
     }
 
-    function render(containerSelector, sets) {
-      const container = document.querySelector(containerSelector);
-      container.innerHTML = '';
+    function render(sel, sets) {
+      const c = document.querySelector(sel);
+      c.innerHTML = '';
       sets.forEach(nums => {
         const row = document.createElement('div');
         row.className = 'set-container';
@@ -147,20 +124,20 @@
           span.textContent = n;
           row.appendChild(span);
         });
-        container.appendChild(row);
+        c.appendChild(row);
       });
     }
 
     async function init() {
       try {
         const latest = await fetchLatest();
-        const lastNums = Array.from({ length: 6 }, (_, i) => latest['drwtNo' + (i + 1)]);
-        document.querySelector('.last-draw').textContent = `지난 회차 (${latest.drwNo}) 번호: ${lastNums.join(', ')}`;
+        const last = Array.from({ length: 6 }, (_, i) => latest['drwtNo' + (i + 1)]);
+        document.querySelector('.last-draw').textContent = `지난 회차 (${latest.drwNo}) 번호: ${last.join(', ')}`;
 
-        const history = await fetchAll(latest.drwNo);
-        const pool    = calcPool(history);
+        const hist = await fetchAll(latest.drwNo);
+        const pool = calcPool(hist);
         render('.recommended', Array.from({ length: 3 }, () => pickNumbers(pool)));
-        render('.random-sets', Array.from({ length: 2 }, () => pickNumbers(Array.from({ length: 45 }, (_, i) => i + 1))));
+        render('.random-sets', Array.from({ length: 2 }, () => pickNumbers(Array.from({ length: 45 }, (_, i) => i+1))));
       } catch (e) {
         console.error(e);
         document.querySelector('.error').textContent = '데이터 처리 중 오류가 발생했습니다.';
