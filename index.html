@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>로또 번호 생성기 – v11</title>
+  <title>로또 번호 생성기 – v13</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.5.0/kakao.min.js" defer
@@ -117,11 +117,6 @@ async function generate(){
     chart=new Chart(document.getElementById('freqChart'),{type:'bar',data:{labels:Object.keys(freq),datasets:[{data:Object.values(freq),backgroundColor:Object.keys(freq).map(n=>({r1:'#e74c3c',r2:'#f39c12',r3:'#27ae60',r4:'#2980b9',r5:'#8e44ad'}[colorClass(+n)]))}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
     const url=location.href.split('?')[0];
     window.shareText=`${url}\n[추천]\n${recSets.map(s=>s.join(', ')).join('\n')}\n[일반]\n${rndSets.map(s=>s.join(', ')).join('\n')}`;
-    window.shareImage = null;
-    // 자동 캡처(카카오톡 등 이미지 공유용) 생성
-    html2canvas(document.body).then(canvas => {
-      window.shareImage = canvas.toDataURL('image/png');
-    });
   }catch(e){console.error(e);err.textContent=e;}
 }
 // 캡처 PNG 저장
@@ -131,17 +126,20 @@ const openWin=(u)=>window.open(u,'_blank');
 document.getElementById('share-twitter').onclick=()=>openWin(`https://twitter.com/intent/tweet?text=${encodeURIComponent(window.shareText)}`);
 // 링크 복사
 document.getElementById('share-copy').onclick=async()=>{await navigator.clipboard.writeText(window.shareText);alert('복사되었습니다!');};
-// 카카오톡 PC/웹 공유
+// 카카오톡 PC/웹 공유 (이미지 없이)
 document.getElementById('share-kakao').onclick=()=>{
   if(!window.Kakao?.isInitialized()) return alert('Kakao SDK 미초기화');
   window.Kakao.Share.sendDefault({
     objectType:'feed',
     content:{
-      title:'로또 번호 추천 결과',
-      description: window.shareText.replace(/^https?:\/\/\S+\n?/,'').slice(0,200),
-      imageUrl: window.shareImage || 'https://kang3519.github.io/lotto-generator/og-lotto.png',
+      title:'로또 번호 생성기 - AI 추천',
+      description: window.shareText.replace(/^https?:\/\/\S+\n?/,'').slice(0,100),
       link:{ mobileWebUrl:location.href, webUrl:location.href }
-    }
+      // imageUrl: window.shareImage  ← 이 부분 없음!
+    },
+    buttons: [
+      { title: '웹에서 보기', link: { mobileWebUrl: location.href, webUrl: location.href } }
+    ]
   });
 };
 document.addEventListener('DOMContentLoaded',generate);
