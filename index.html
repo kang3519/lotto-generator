@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>로또 번호 생성기 – v7</title>
+  <title>로또 번호 생성기 – v7-CDN</title>
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Kakao SDK -->
+
+  <!-- Kakao SDK (JS 키 삽입) -->
   <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.5.0/kakao.min.js" defer
-          onload="Kakao.init('KAKAO_APP_KEY_HERE');"></script>
+          onload="Kakao.init('13aaec94bd811a32bbb688c8b1a37ba2');"></script>
 
   <style>
     body{font-family:Arial,sans-serif;background:#f9fafb;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}
@@ -24,7 +25,7 @@
     .progress-bar{width:100%;background:#eee;border-radius:6px;overflow:hidden;margin:10px 0;height:14px}
     .progress-bar-inner{height:100%;background:#3498db;width:0;transition:width .25s}
     .share-row{display:flex;justify-content:center;gap:20px;margin-top:10px}
-    .share-btn{border:none;background:none;cursor:pointer;font-size:0}
+    .share-btn{border:none;background:none;cursor:pointer;padding:0}
     .share-btn img{width:32px;height:32px}
     #error{color:#e74c3c;text-align:center;margin-top:10px}
   </style>
@@ -32,40 +33,49 @@
 <body>
 <div class="container">
 
-  <!-- 카드 1: 최신 회차 & 진행 -->
+  <!-- 카드 1 -->
   <section class="card">
     <h2>최근 회차 정보</h2>
     <div class="last-draw">로딩 중...</div>
     <div class="progress-bar"><div class="progress-bar-inner"></div></div>
   </section>
 
-  <!-- 카드 2: 추천 번호 -->
+  <!-- 카드 2 -->
   <section class="card">
     <h2>추천 번호 3세트 (TOP 100 풀)</h2>
     <div id="recommended"></div>
   </section>
 
-  <!-- 카드 3: 일반 번호 & 버튼 -->
+  <!-- 카드 3 -->
   <section class="card">
     <h2>일반 번호 2세트</h2>
     <div id="random"></div>
     <button class="btn-main" onclick="generate()">번호 새로고침</button>
   </section>
 
-  <!-- 카드 4: 빈도 상위 6개 & 그래프 -->
+  <!-- 카드 4 -->
   <section class="card">
     <h2>최근 100회 빈도 상위 6개</h2>
     <div id="top-six" class="set"></div>
     <canvas id="freqChart" height="240"></canvas>
   </section>
 
-  <!-- 카드 5: 공유 -->
+  <!-- 카드 5 : 공유 -->
   <section class="card">
     <h2>공유하기</h2>
     <div class="share-row">
-      <button class="share-btn" id="share-kakao"><img src="/img/kakao.svg" alt="kakao"></button>
-      <button class="share-btn" id="share-twitter"><img src="/img/x.svg" alt="twitter"></button>
-      <button class="share-btn" id="share-copy"><img src="/img/link.svg" alt="copy"></button>
+      <!-- KakaoTalk -->
+      <button class="share-btn" id="share-kakao">
+        <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/kakaotalk.svg" alt="kakao">
+      </button>
+      <!-- X / Twitter -->
+      <button class="share-btn" id="share-twitter">
+        <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/x.svg" alt="twitter">
+      </button>
+      <!-- 링크 복사 -->
+      <button class="share-btn" id="share-copy">
+        <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/link.svg" alt="copy">
+      </button>
     </div>
   </section>
 
@@ -73,7 +83,7 @@
 </div>
 
 <script>
-/* ---------- 유틸 ---------- */
+/* ------- 프록시 ------- */
 const PROXIES=[
   u=>`https://thingproxy.freeboard.io/fetch/${u}`,
   u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
@@ -81,22 +91,19 @@ const PROXIES=[
 ];
 async function fetchJSON(url){
   for(const build of PROXIES){
-    try{ return await fetch(build(url)).then(r=>r.json()); }catch{}
+    try{return await fetch(build(url)).then(r=>r.json());}catch{}
   }
   return null;
 }
+
+/* ------- 유틸 ------- */
 const colorClass=n=>n<=10?'r1':n<=20?'r2':n<=30?'r3':n<=40?'r4':'r5';
-function ball(n){return `<span class="num ${colorClass(n)}">${n}</span>`;}
-function renderSet(el,sets){
-  el.innerHTML=sets.map(s=>`<div class="set">${s.map(ball).join('')}</div>`).join('');
-}
-function pick(pool){
-  const a=pool.slice(),o=[];
-  while(o.length<6)a.length&&o.push(a.splice(Math.random()*a.length|0,1)[0]);
-  return o.sort((x,y)=>x-y);
-}
-/* ---------- 데이터 ---------- */
-async function getLatestNo(){
+const ball=n=>`<span class="num ${colorClass(n)}">${n}</span>`;
+function renderSet(el,arrs){el.innerHTML=arrs.map(a=>`<div class="set">${a.map(ball).join('')}</div>`).join('');}
+function pick(pool){const src=pool.slice(),out=[];while(out.length<6&&src.length)out.push(src.splice(Math.random()*src.length|0,1)[0]);return out.sort((a,b)=>a-b);}
+
+/* ------- 최신 회차 추정 ------- */
+async function latestNo(){
   const weeks=Math.floor((Date.now()-Date.UTC(2002,11,7))/6048e5)+5;
   for(let n=weeks;n>weeks-60;n--){
     const d=await fetchJSON(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${n}`);
@@ -104,63 +111,54 @@ async function getLatestNo(){
   }
   throw '최신 회차 탐색 실패';
 }
-/* ---------- 메인 ---------- */
-let freqChart;
+
+/* ------- 메인 ------- */
+let chart;
 async function generate(){
-  const error=document.getElementById('error');error.textContent='';
+  const err=document.getElementById('error');err.textContent='';
   const bar=document.querySelector('.progress-bar-inner');bar.style.width='0%';
 
   try{
-    const latest=await getLatestNo();
-    const targets=[...Array(100).keys()].map(i=>latest-i);
-    const res=await Promise.allSettled(targets.map(no=>fetchJSON(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${no}`)));
-    const freq={}, success=res.filter(r=>r.status==='fulfilled'&&r.value&&r.value.returnValue==='success');
-    success.forEach(r=>{
-      for(let i=1;i<=6;i++){
-        const n=r.value['drwtNo'+i];
-        freq[n]=(freq[n]||0)+1;
+    const latest=await latestNo();
+    const nums=[...Array(100).keys()].map(i=>latest-i);
+    const res=await Promise.allSettled(nums.map(n=>fetchJSON(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${n}`)));
+    const freq={},total=res.length;
+    res.forEach((r,i)=>{
+      if(r.status==='fulfilled'&&r.value&&r.value.returnValue==='success'){
+        for(let k=1;k<=6;k++){const n=r.value['drwtNo'+k];freq[n]=(freq[n]||0)+1;}
       }
+      bar.style.width=`${((i+1)/total*100).toFixed(0)}%`;
     });
-    /* 진행률 */
-    res.forEach((_,i)=>bar.style.width=`${((i+1)/res.length*100).toFixed(0)}%`);
-    /* 최신 회차 번호 */
-    const latestData=success[0]?.value;
+
+    const first=res[0].status==='fulfilled'?res[0].value:null;
     document.querySelector('.last-draw').innerHTML=
-      latestData
-        ?`최근 회차: <strong>${latest}</strong><br>${[...Array(6)].map((_,i)=>ball(latestData['drwtNo'+(i+1)])).join('')}`
-        :`최근 회차: ${latest} (번호 조회 실패)`;
+      first?`최근 회차: <strong>${latest}</strong><br>${[...Array(6)].map((_,i)=>ball(first['drwtNo'+(i+1)])).join('')}`
+           :`최근 회차: ${latest} (조회 실패)`;
 
-    /* 추천/일반 */
     const pool=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).slice(0,100).map(Number);
-    renderSet(document.getElementById('recommended'), Array.from({length:3},()=>pick(pool)));
-    renderSet(document.getElementById('random'),      Array.from({length:2},()=>pick([...Array(45)].map((_,i)=>i+1))));
+    renderSet(document.getElementById('recommended'),Array.from({length:3},()=>pick(pool)));
+    renderSet(document.getElementById('random'),     Array.from({length:2},()=>pick([...Array(45)].map((_,i)=>i+1))));
 
-    /* TOP6 */
-    const topSix=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).slice(0,6).map(Number).sort((a,b)=>a-b);
-    renderSet(document.getElementById('top-six'), [topSix]);
+    const top6=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).slice(0,6).map(Number).sort((a,b)=>a-b);
+    renderSet(document.getElementById('top-six'),[top6]);
 
     /* 그래프 */
     const ctx=document.getElementById('freqChart');
-    if(freqChart&&typeof freqChart.destroy==='function')freqChart.destroy();
-    freqChart=new Chart(ctx,{type:'bar',
-      data:{labels:Object.keys(freq),datasets:[{data:Object.values(freq),
-        backgroundColor:Object.keys(freq).map(n=>({r1:'#e74c3c',r2:'#f39c12',r3:'#27ae60',r4:'#2980b9',r5:'#8e44ad'}[colorClass(+n)]))
-      }]},
+    if(chart&&typeof chart.destroy==='function')chart.destroy();
+    chart=new Chart(ctx,{type:'bar',
+      data:{labels:Object.keys(freq),
+            datasets:[{data:Object.values(freq),
+              backgroundColor:Object.keys(freq).map(n=>({r1:'#e74c3c',r2:'#f39c12',r3:'#27ae60',r4:'#2980b9',r5:'#8e44ad'}[colorClass(+n)]))}]},
       options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
     });
 
-    /* 공유 메시지 */
     const url=location.href.split('?')[0];
-    const rec=document.getElementById('recommended').innerText.replace(/\s+/g,' ');
-    const rnd=document.getElementById('random').innerText.replace(/\s+/g,' ');
-    window.shareText=`${url}\n추천:${rec}\n일반:${rnd}`;
+    window.shareText=`${url}\n추천:${document.getElementById('recommended').innerText}\n일반:${document.getElementById('random').innerText}`;
 
-  }catch(e){
-    console.error(e);
-    error.textContent=e;
-  }
+  }catch(e){console.error(e);err.textContent=e;}
 }
-/* ---------- 공유 ---------- */
+
+/* ------- 공유 ------- */
 document.getElementById('share-twitter').onclick=()=>window.open(
   `https://twitter.com/intent/tweet?text=${encodeURIComponent(window.shareText)}`,'_blank');
 document.getElementById('share-copy').onclick=async()=>{
@@ -168,13 +166,14 @@ document.getElementById('share-copy').onclick=async()=>{
   alert('복사됨!');
 };
 document.getElementById('share-kakao').onclick=()=>{
-  if(!window.Kakao?.isInitialized())return alert('카카오 SDK 미초기화');
+  if(!window.Kakao?.isInitialized())return alert('Kakao SDK 미초기화');
   Kakao.Share.sendDefault({
     objectType:'text',
     text:window.shareText,
     link:{mobile_web_url:location.href,web_url:location.href}
   });
 };
+
 document.addEventListener('DOMContentLoaded',generate);
 </script>
 </body>
