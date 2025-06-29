@@ -1,46 +1,36 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>로또 번호 생성기</title>
-  <style>
-    body { background: #f9fafb; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; font-family: Arial, sans-serif; }
-    .container { background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 480px; }
-    h1 { text-align: center; margin-bottom: 8px; }
-    .last-draw, .section-title { text-align: center; margin: 12px 0; }
-    .set { display: flex; justify-content: center; margin: 8px 0; }
-    .num { width: 36px; height: 36px; line-height: 36px; border-radius: 50%; text-align: center; margin: 0 4px; color: #fff; font-weight: bold; }
-    .r1 { background: #e74c3c; } .r2 { background: #f39c12; }
-    .r3 { background: #27ae60; } .r4 { background: #2980b9; } .r5 { background: #8e44ad; }
-    .btn { display: block; margin: 20px auto 0; padding: 10px 20px; border: none; background: #3498db; color: #fff; border-radius: 6px; cursor: pointer; font-size: 1em; }
-    .btn:hover { background: #2980b9; }
-    .error { color: #e74c3c; text-align: center; margin-top: 10px; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>로또 번호 생성기</title>
+<style>
+  body { background: #f9fafb; font-family: Arial,sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+  .container { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 480px; }
+  h1, .section-title, .last-draw { text-align: center; margin: 12px 0; }
+  .set { display: flex; justify-content: center; margin: 8px 0; flex-wrap: wrap; }
+  .num { width: 36px; height: 36px; line-height: 36px; border-radius: 50%; text-align: center; margin: 4px; color: #fff; font-weight: bold; }
+  .r1 { background: #e74c3c; } .r2 { background: #f39c12; }
+  .r3 { background: #27ae60; } .r4 { background: #2980b9; } .r5 { background: #8e44ad; }
+  .btn { display: block; margin: 20px auto 0; padding: 10px 20px; background: #3498db; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 1em; }
+  .btn:hover { background: #2980b9; }
+  .error { color: #e74c3c; text-align: center; margin-top: 10px; }
+</style>
 </head>
 <body>
-  <div class="container">
-    <h1>로또 번호 생성기 🎉</h1>
-    <div class="last-draw">로딩 중...</div>
-    <div class="section-title">추천 번호 3세트</div>
-    <div id="recommended"></div>
-    <div class="section-title">일반 번호 2세트</div>
-    <div id="random"></div>
-    <button class="btn" onclick="generate()">번호 새로고침</button>
-    <div class="error" id="error"></div>
-  </div>
+<div class="container">
+  <h1>로또 번호 생성기 🎉</h1>
+  <div class="last-draw">로딩 중...</div>
+  <div class="section-title">추천 번호 3세트</div>
+  <div id="recommended"></div>
+  <div class="section-title">일반 번호 2세트</div>
+  <div id="random"></div>
+  <button class="btn" onclick="generate()">번호 새로고침</button>
+  <div class="error" id="error"></div>
+</div>
 <script>
-const API = 'https://www.dhlottery.co.kr/common.do?method=getLottoNumber';
-const proxy = url =>
-  fetch('https://corsproxy.io/?' + encodeURIComponent(url))
-    .then(r => r.text())
-    .then(text => JSON.parse(text));
-
-function colorClass(n) {
-  return n <= 10 ? 'r1' : n <= 20 ? 'r2' : n <= 30 ? 'r3' : n <= 40 ? 'r4' : 'r5';
-}
-
-function renderNumbers(container, sets) {
+function colorClass(n){ return n<=10?'r1':n<=20?'r2':n<=30?'r3':n<=40?'r4':'r5'; }
+function render(container, sets){
   container.innerHTML = '';
   sets.forEach(set => {
     const div = document.createElement('div');
@@ -54,59 +44,47 @@ function renderNumbers(container, sets) {
     container.appendChild(div);
   });
 }
-
-function pickNumbers(pool) {
+function pickNumbers(pool){
   const a = pool.slice(), p = [];
-  while (p.length < 6 && a.length) {
-    p.push(a.splice(Math.floor(Math.random() * a.length), 1)[0]);
-  }
-  return p.sort((x, y) => x - y);
+  while (p.length < 6 && a.length) p.push(a.splice(Math.random()*a.length|0,1)[0]);
+  return p.sort((x,y) => x-y);
 }
-
-async function generate() {
-  try {
+async function getLatestDraw(){
+  let drwNo = 1200; // 안전 상한
+  while(drwNo>0){
+    const data = await fetch(`https://corsproxy.io/?https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drwNo}`)
+    .then(r=>r.text()).then(t=>JSON.parse(t)).catch(()=>null);
+    if(data && data.returnValue==='success') return data;
+    drwNo--;
+  }
+  throw new Error('최신 회차를 찾지 못했습니다.');
+}
+async function generate(){
+  try{
+    document.getElementById('error').textContent = '로딩 중...';
+    const latest = await getLatestDraw();
+    const lastNums = Array.from({length:6}, (_,i)=>latest['drwtNo'+(i+1)]);
+    document.querySelector('.last-draw').textContent = `지난 회차 (${latest.drwNo}) 번호: ${lastNums.join(', ')}`;
+    const history = await Promise.all(Array.from({length:latest.drwNo},(_,i)=>
+      fetch(`https://corsproxy.io/?https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${i+1}`)
+      .then(r=>r.text()).then(t=>JSON.parse(t)).catch(()=>null)
+    ));
+    const freq={};
+    history.filter(h=>h&&h.returnValue==='success').forEach(h=>{
+      for(let i=1;i<=6;i++){
+        const n=h['drwtNo'+i];
+        freq[n]=(freq[n]||0)+1;
+      }
+    });
+    const pool = Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).slice(0,40).map(Number);
+    const recommendedSets = Array.from({length:3},()=>pickNumbers(pool));
+    const randomSets = Array.from({length:2},()=>pickNumbers(Array.from({length:45},(_,i)=>i+1)));
+    render(document.getElementById('recommended'), recommendedSets);
+    render(document.getElementById('random'), randomSets);
     document.getElementById('error').textContent = '';
-    const latest = await proxy(API);
-    const lastNums = Array.from({ length: 6 }, (_, i) => latest['drwtNo' + (i + 1)]);
-    document.querySelector('.last-draw').textContent =
-      `지난 회차 (${latest.drwNo}) 번호: ${lastNums.join(', ')}`;
-
-    const history = await Promise.all(
-      Array.from({ length: latest.drwNo }, (_, i) =>
-        proxy(`${API}&drwNo=${i + 1}`).catch(() => null)
-      )
-    );
-
-    const freq = {};
-    history
-      .filter(h => h && h.returnValue === 'success')
-      .forEach(h => {
-        for (let i = 1; i <= 6; i++) {
-          const n = h['drwtNo' + i];
-          freq[n] = (freq[n] || 0) + 1;
-        }
-      });
-
-    const pool = Object.keys(freq)
-      .sort((a, b) => freq[b] - freq[a])
-      .slice(0, 40)
-      .map(Number);
-
-    const recommendedSets = Array.from({ length: 3 }, () => pickNumbers(pool));
-    const randomSets = Array.from({ length: 2 }, () =>
-      pickNumbers(Array.from({ length: 45 }, (_, i) => i + 1))
-    );
-
-    renderNumbers(document.getElementById('recommended'), recommendedSets);
-    renderNumbers(document.getElementById('random'), randomSets);
-
-  } catch (e) {
+  }catch(e){
     console.error(e);
     document.getElementById('error').textContent = '데이터를 불러오는 중 오류가 발생했습니다.';
   }
 }
-
-document.addEventListener('DOMContentLoaded', generate);
-</script>
-</body>
-</html>
+document.addEventListener
