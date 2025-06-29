@@ -9,7 +9,7 @@ async function fetchRange(latest){
     res.forEach(r=>out.push(r));
     document.querySelector('.progress-bar-inner').style.width=`${(out.length/100*100).toFixed(0)}%`;
   }
-  // "6개 번호만" 정확히 있는 회차만 남김
+  // 1~45만 필터
   return out
     .filter(r=>r.status==='fulfilled' && r.value && [1,2,3,4,5,6].every(k=>typeof r.value[`drwtNo${k}`]==='number'))
     .map(r=>[1,2,3,4,5,6].map(k=>r.value[`drwtNo${k}`]));
@@ -31,8 +31,8 @@ async function load(){
     };
     document.getElementById('pattern-desc').textContent=
       `목표 ▸ 합계≈${avgStats.sum.toFixed(0)}, 홀≈${avgStats.odd.toFixed(1)}, 고수≈${avgStats.high.toFixed(1)}`;
-    // 🔥🔥 1~45만 빈도 누적
-    const freq=Array(46).fill(0); // [0]~[45]
+    // 1~45만 빈도 집계
+    const freq=Array(46).fill(0); // [0]~[45], 0번은 무시
     for(const arr of history){
       for(const n of arr){
         if(Number.isInteger(n) && n>=1 && n<=45) freq[n]++;
