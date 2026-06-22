@@ -24,8 +24,9 @@
 
     .round-hdr{background:linear-gradient(90deg,#1a3a5c,#2980b9);color:#fff;border-radius:7px;padding:7px 12px;font-weight:700;font-size:.8rem;margin:14px 0 6px;letter-spacing:.4px}
     .match-card{border:1px solid #e4eaf2;border-radius:10px;margin:6px 0;overflow:hidden}
-    .match-hdr{padding:12px 14px;cursor:pointer;user-select:none;transition:background .12s}
-    .match-hdr:hover{background:#f8faff}
+
+    /* Match top section */
+    .match-top{padding:12px 14px;background:#fff}
     .match-row{display:flex;align-items:center;gap:8px}
     .team{flex:1;font-weight:700;font-size:.88rem}
     .team.r{text-align:right}
@@ -38,30 +39,31 @@
     .pd{background:#95a5a6;color:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;transition:width .4s;min-width:0}
     .pa{background:#e74c3c;color:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;transition:width .4s;min-width:0}
 
-    /* Expand / betting panel */
-    .bet-panel{border-top:2px solid #eef2f7;background:#f8faff;padding:14px}
-    .ai-hint{font-size:.8rem;color:#666;margin-bottom:12px;background:#fff;border:1px solid #e4eaf2;border-radius:7px;padding:8px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    /* Bet panel — always visible */
+    .bet-panel{border-top:1px solid #eef2f7;background:#f8faff;padding:10px 14px}
+    .ai-hint{font-size:.78rem;color:#666;margin-bottom:10px;background:#fff;border:1px solid #e4eaf2;border-radius:7px;padding:7px 10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
     .ai-hint strong{color:#8e54e9}
-    .bet-table{width:100%;border-collapse:collapse;margin-bottom:10px}
-    .bet-table th{font-size:.75rem;color:#888;font-weight:600;padding:4px 6px;border-bottom:2px solid #eef2f7;text-align:left}
-    .bet-table th.c{text-align:center}
-    .bet-table td{padding:7px 6px;border-bottom:1px solid #f0f4f8;vertical-align:middle}
-    .bet-table tr:last-child td{border-bottom:none}
-    .p-name{font-weight:700;font-size:.85rem}
-    .score-cell{display:flex;align-items:center;gap:6px;justify-content:center}
-    .s-inp{width:42px;height:34px;text-align:center;font-size:1rem;font-weight:700;border:2px solid #ddd;border-radius:6px;padding:2px;-moz-appearance:textfield}
+
+    /* Inline bet rows */
+    .bet-rows{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+    .bet-row{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e8eef6;border-radius:8px;padding:7px 10px}
+    .bet-pname{flex:1;font-weight:700;font-size:.82rem;min-width:60px}
+    .bet-amount{font-size:.72rem;color:#aaa}
+    .score-cell{display:flex;align-items:center;gap:5px}
+    .s-inp{width:40px;height:32px;text-align:center;font-size:.95rem;font-weight:700;border:2px solid #ddd;border-radius:6px;padding:0;-moz-appearance:textfield}
     .s-inp::-webkit-inner-spin-button,.s-inp::-webkit-outer-spin-button{-webkit-appearance:none}
-    .s-inp:focus{border-color:var(--primary);outline:none}
-    .s-inp:disabled{background:#f0f4f8;color:#aaa;border-color:#e0e0e0}
-    .colon{font-size:1.1rem;font-weight:700;color:#aaa}
-    .result-cell{text-align:center;font-size:.82rem;font-weight:700;white-space:nowrap}
-    .badge-exact{color:#fff;background:var(--green);border-radius:5px;padding:2px 8px}
-    .badge-close{color:#fff;background:var(--orange);border-radius:5px;padding:2px 8px}
-    .badge-lose{color:#fff;background:var(--red);border-radius:5px;padding:2px 8px}
-    .badge-none{color:#aaa;font-size:.78rem}
-    .pot-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:6px}
-    .pot-info{font-size:.78rem;color:#888}
-    .pot-info strong{color:#333}
+    .s-inp:focus{border-color:var(--primary);outline:none;background:#fff}
+    .s-inp:disabled{background:#f0f4f8;color:#888;border-color:#e0e0e0}
+    .colon{font-size:1rem;font-weight:700;color:#bbb}
+    .result-badge{font-size:.75rem;font-weight:700;white-space:nowrap;text-align:right;min-width:70px}
+    .badge-exact{color:var(--green)}
+    .badge-close{color:var(--orange)}
+    .badge-lose{color:var(--red)}
+    .badge-none{color:#ccc}
+    .save-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+    .pot-info{font-size:.75rem;color:#999}
+    .pot-info strong{color:#555}
+    .winner-box{background:#f0fff4;border-radius:7px;padding:7px 10px;font-size:.8rem;color:#1e8449;margin-top:4px}
 
     /* Participants */
     .p-row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid #f0f0f0}
@@ -72,12 +74,12 @@
     .lb-row:last-child{border-bottom:none}
     .rnum{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;color:#fff;flex-shrink:0;background:#bbb}
     .rnum.g{background:var(--orange)}.rnum.s{background:#95a5a6}.rnum.b{background:#cd7f32}
-    .txn{display:flex;align-items:center;gap:8px;padding:9px 6px;border-bottom:1px solid #f0f4f8;font-size:.9rem}
+    .txn{display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid #f0f4f8;font-size:.88rem}
     .txn:last-child{border-bottom:none}
     .txn-arrow{color:var(--red);font-weight:800}
     .txn-amt{margin-left:auto;font-weight:700;color:var(--green)}
 
-    @media(max-width:500px){.team{font-size:.78rem}.mid{min-width:90px}.s-inp{width:36px;height:30px}}
+    @media(max-width:500px){.team{font-size:.76rem}.mid{min-width:90px}.s-inp{width:34px;height:30px}.bet-pname{font-size:.76rem}}
   </style>
 </head>
 <body>
@@ -89,7 +91,7 @@
 
 <div class="container">
 
-  <!-- ① 참가자 먼저 -->
+  <!-- ① 참가자 -->
   <div class="card">
     <div class="card-title">👥 내기 참가자 등록</div>
     <p style="font-size:.8rem;color:#888;margin-bottom:12px">경기당 내기 금액을 설정하세요. 각자 스코어를 예측하고 가장 정확한 사람이 판돈 전체를 가져갑니다.</p>
@@ -109,12 +111,12 @@
     </div>
   </div>
 
-  <!-- ② 경기 & AI + 내기 스코어 입력 -->
+  <!-- ② 경기 & 내기 -->
   <div class="card">
     <div class="card-title">⚽ 경기 스코어 내기</div>
-    <p style="font-size:.8rem;color:#888;margin-bottom:12px">경기를 클릭해서 각자 예측 스코어를 입력하세요 · AI 예측이 참고용으로 표시됩니다</p>
+    <p style="font-size:.8rem;color:#888;margin-bottom:12px">각 경기마다 예측 스코어를 바로 입력하고 저장하세요 · AI 예측이 참고용으로 표시됩니다</p>
     <div id="matches-list">
-      <div style="text-align:center;padding:40px;color:#bbb">⏳ 경기 데이터 로딩 중...</div>
+      <div style="text-align:center;padding:40px;color:#bbb">⏳ 2026 월드컵 경기 데이터 로딩 중...</div>
     </div>
   </div>
 
@@ -134,7 +136,7 @@
 <script>
 /* ===== STATE ===== */
 const PARTS_KEY = 'wc2026_participants';
-const PICKS_KEY = 'wc2026_score_picks'; // score-based picks (different key from old version)
+const PICKS_KEY = 'wc2026_score_picks';
 
 let wMatches     = [];
 let participants = JSON.parse(localStorage.getItem(PARTS_KEY) || '[]');
@@ -152,6 +154,7 @@ const F = {
   'Colombia':'🇨🇴','Chile':'🇨🇱','Peru':'🇵🇪','Tunisia':'🇹🇳','Algeria':'🇩🇿',
   'Qatar':'🇶🇦','Costa Rica':'🇨🇷','Panama':'🇵🇦','Jamaica':'🇯🇲','Indonesia':'🇮🇩',
   'Venezuela':'🇻🇪','Bolivia':'🇧🇴','New Zealand':'🇳🇿','Kenya':'🇰🇪',
+  'Morocco':'🇲🇦','Wales':'🏴󠁧󠁢󠁷󠁬󠁳󠁿','Scotland':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','Ukraine':'🇺🇦','Turkey':'🇹🇷',
 };
 const flag = n => F[n] || '🏳️';
 
@@ -207,32 +210,69 @@ async function aiPredict(matchId, home, away) {
   return result;
 }
 
+/* ===== FIND FIFA WORLD CUP LEAGUE ===== */
+async function findWCLeagueId() {
+  // Try known candidate IDs for FIFA World Cup
+  const candidates = [4429, 4514, 4501, 4480];
+  for (const id of candidates) {
+    const r = await fetch(`https://www.thesportsdb.com/api/v1/json/3/lookupleague.php?id=${id}`)
+      .then(r => r.json()).catch(() => null);
+    const name = r?.leagues?.[0]?.strLeague || '';
+    if (name.toLowerCase().includes('world cup') && !name.toLowerCase().includes('women')) {
+      return id;
+    }
+  }
+  // Fall back to search by country
+  const search = await fetch('https://www.thesportsdb.com/api/v1/json/3/searchleagues.php?c=International&s=Soccer')
+    .then(r => r.json()).catch(() => null);
+  const wc = (search?.leagues || []).find(l =>
+    l.strLeague?.toLowerCase().includes('world cup') && !l.strLeague?.toLowerCase().includes('women')
+  );
+  return wc ? +wc.idLeague : null;
+}
+
 /* ===== LOAD MATCHES ===== */
 async function loadMatches() {
   const container = document.getElementById('matches-list');
   try {
-    let events = null;
-    const res = await fetch('https://www.thesportsdb.com/api/v1/json/3/eventsseason.php?id=4480&s=2026')
-      .then(r => r.json()).catch(() => null);
-    events = res?.events;
-    if (!events?.length) {
-      const [past, next] = await Promise.all([
-        fetch('https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=4480').then(r=>r.json()).catch(()=>null),
-        fetch('https://www.thesportsdb.com/api/v1/json/3/eventsnextleague.php?id=4480').then(r=>r.json()).catch(()=>null),
-      ]);
-      events = [...(past?.events||[]), ...(next?.events||[])];
+    let events = [];
+
+    // Step 1: Find correct World Cup league ID
+    const leagueId = await findWCLeagueId();
+    if (leagueId) {
+      const r = await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsseason.php?id=${leagueId}&s=2026`)
+        .then(r => r.json()).catch(() => null);
+      events = r?.events || [];
+
+      // If season query empty, try past+next
+      if (!events.length) {
+        const [past, nxt] = await Promise.all([
+          fetch(`https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=${leagueId}`).then(r=>r.json()).catch(()=>null),
+          fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsnextleague.php?id=${leagueId}`).then(r=>r.json()).catch(()=>null),
+        ]);
+        events = [...(past?.events||[]), ...(nxt?.events||[])];
+      }
     }
-    wMatches = (events||[]).sort((a,b) =>
+
+    // Step 2: Filter to only 2026 events
+    if (events.length) {
+      events = events.filter(e => e.dateEvent?.startsWith('2026'));
+    }
+
+    wMatches = events.sort((a,b) =>
       new Date(a.dateEvent+'T'+(a.strTime||'00:00')) - new Date(b.dateEvent+'T'+(b.strTime||'00:00'))
     );
+
     if (!wMatches.length) {
       container.innerHTML = `<div style="text-align:center;padding:40px;color:#aaa">
         <div style="font-size:2.5em">⚽</div>
-        <div style="font-weight:700;margin-top:8px">2026 월드컵 데이터 없음</div>
-        <div style="font-size:.8em;color:#bbb;margin-top:4px">TheSportsDB에 데이터가 아직 없을 수 있습니다</div>
+        <div style="font-weight:700;margin-top:8px">2026 FIFA 월드컵 데이터 없음</div>
+        <div style="font-size:.8em;color:#bbb;margin-top:4px">TheSportsDB에 2026 월드컵 데이터가 아직 없습니다</div>
+        <div style="font-size:.75em;color:#ccc;margin-top:2px">리그 ID: ${leagueId || '미확인'}</div>
       </div>`;
       return;
     }
+
     renderMatchList(container);
     startAIProgress();
     updateSettlement();
@@ -241,7 +281,7 @@ async function loadMatches() {
   }
 }
 
-/* ===== MATCH LIST ===== */
+/* ===== HELPERS ===== */
 function actualResult(m) {
   if (m.intHomeScore == null || m.intHomeScore === '') return null;
   return { h: +m.intHomeScore, a: +m.intAwayScore };
@@ -252,22 +292,18 @@ function matchWinners(m) {
   if (!actual) return { winners: [], type: null };
   const entered = participants.filter(p => picks[p.id]?.[m.idEvent]?.h !== undefined);
   if (!entered.length) return { winners: [], type: null };
-
-  // Check exact
   const exact = entered.filter(p =>
     picks[p.id][m.idEvent].h === actual.h && picks[p.id][m.idEvent].a === actual.a
   );
   if (exact.length) return { winners: exact, type: 'exact' };
-
-  // Closest
   const withDist = entered.map(p => ({
-    p,
-    d: Math.abs(picks[p.id][m.idEvent].h - actual.h) + Math.abs(picks[p.id][m.idEvent].a - actual.a)
+    p, d: Math.abs(picks[p.id][m.idEvent].h - actual.h) + Math.abs(picks[p.id][m.idEvent].a - actual.a)
   }));
   const minD = Math.min(...withDist.map(x => x.d));
   return { winners: withDist.filter(x => x.d === minD).map(x => x.p), type: 'closest', dist: minD };
 }
 
+/* ===== RENDER MATCH LIST ===== */
 function renderMatchList(container) {
   const rounds = {};
   wMatches.forEach(m => {
@@ -278,153 +314,118 @@ function renderMatchList(container) {
   for (const [round, ms] of Object.entries(rounds)) {
     html += `<div class="round-hdr">📅 ${round}</div>`;
     for (const m of ms) {
-      const done = actualResult(m);
-      const date = m.dateEvent
-        ? new Date(m.dateEvent+'T12:00:00').toLocaleDateString('ko-KR',{month:'numeric',day:'numeric',weekday:'short'})
-        : '';
-      html += `<div class="match-card">
-        <div class="match-hdr" onclick="toggleExpand('${m.idEvent}')">
-          <div class="match-row">
-            <span class="team r">${flag(m.strHomeTeam)} ${m.strHomeTeam}</span>
-            <div class="mid">
-              <div id="ai-${m.idEvent}"><span style="color:#ccc;font-size:.75rem">AI 분석 중...</span></div>
-              ${done
-                ? `<div class="actual-score">${done.h} : ${done.a}</div>`
-                : `<div class="match-date">${date}</div>`}
-            </div>
-            <span class="team">${flag(m.strAwayTeam)} ${m.strAwayTeam}</span>
-          </div>
-          <div class="prob-bar" id="prob-${m.idEvent}">
-            <div class="ph" style="width:40%">홈</div>
-            <div class="pd" style="width:20%">무</div>
-            <div class="pa" style="width:40%">원정</div>
-          </div>
-        </div>
-        <div class="bet-panel" id="expand-${m.idEvent}" style="display:none">
-          ${betPanelHTML(m)}
-        </div>
-      </div>`;
+      html += matchCardHTML(m);
     }
   }
   container.innerHTML = html;
 }
 
-function toggleExpand(matchId) {
-  const el = document.getElementById('expand-'+matchId);
-  if (!el) return;
-  const opening = el.style.display === 'none';
-  el.style.display = opening ? '' : 'none';
-  // Re-render on open to reflect latest picks/participants
-  if (opening) {
-    const m = wMatches.find(m => m.idEvent === matchId);
-    if (m) el.innerHTML = betPanelHTML(m);
-  }
-}
-
-/* ===== BET PANEL HTML ===== */
-function betPanelHTML(m) {
-  const done   = !!actualResult(m);
-  const actual = actualResult(m);
-  const ai     = aiCache[m.idEvent];
-  const { winners, type } = matchWinners(m);
-  const winnerIds = winners.map(p => p.id);
-  const entered = participants.filter(p => picks[p.id]?.[m.idEvent]?.h !== undefined);
-  const pot = entered.reduce((s,p) => s + p.bet, 0);
-  const potAll = participants.reduce((s,p) => s + p.bet, 0);
-
-  let html = '';
+function matchCardHTML(m) {
+  const done = actualResult(m);
+  const date = m.dateEvent
+    ? new Date(m.dateEvent+'T12:00:00').toLocaleDateString('ko-KR',{month:'numeric',day:'numeric',weekday:'short'})
+    : '';
+  const ai = aiCache[m.idEvent];
 
   // AI hint
-  if (ai) {
-    const top3 = ai.top3.map(s=>`${s.h}:${s.a}`).join(' / ');
-    html += `<div class="ai-hint">
-      🤖 AI 예측: <strong>${ai.best.h}:${ai.best.a}</strong> &nbsp;
-      <span style="color:#aaa">|</span>&nbsp;
-      홈 승 <strong style="color:#3498db">${ai.hw}%</strong> &nbsp;
-      무 <strong style="color:#95a5a6">${ai.dw}%</strong> &nbsp;
-      원정 승 <strong style="color:#e74c3c">${ai.aw}%</strong> &nbsp;
-      <span style="font-size:.72rem;color:#bbb">(상위 3: ${top3})</span>
-    </div>`;
-  } else {
-    html += `<div class="ai-hint" style="color:#ccc">🤖 AI 분석 중...</div>`;
-  }
+  let aiHintHTML = `<div class="ai-hint" id="ai-hint-${m.idEvent}" style="color:#ccc">🤖 AI 분석 중...</div>`;
+  if (ai) aiHintHTML = buildAiHintHTML(m.idEvent, ai);
 
+  // Bet rows for each participant
+  let betRowsHTML = '';
   if (!participants.length) {
-    return html + '<p style="text-align:center;color:#bbb;padding:10px;font-size:.82rem">위에서 참가자를 먼저 추가하세요</p>';
-  }
+    betRowsHTML = '<p style="text-align:center;color:#bbb;font-size:.8rem;padding:6px">위에서 참가자를 먼저 추가하세요</p>';
+  } else {
+    const { winners, type } = matchWinners(m);
+    const winnerIds = winners.map(p => p.id);
+    const entered = participants.filter(p => picks[p.id]?.[m.idEvent]?.h !== undefined);
+    const pot = entered.reduce((s,p) => s + p.bet, 0);
 
-  // Table header
-  html += `<table class="bet-table">
-    <thead>
-      <tr>
-        <th>참가자</th>
-        <th class="c">예측 스코어<br><span style="font-weight:400;font-size:.7rem">(홈 : 원정)</span></th>
-        <th class="c">결과</th>
-      </tr>
-    </thead>
-    <tbody>`;
+    betRowsHTML = '<div class="bet-rows">';
+    participants.forEach(p => {
+      const pick = picks[p.id]?.[m.idEvent];
+      const hVal = pick?.h !== undefined ? pick.h : '';
+      const aVal = pick?.a !== undefined ? pick.a : '';
+      const isWinner = winnerIds.includes(p.id);
+      const actual = actualResult(m);
+      const isExact = actual && pick && pick.h === actual.h && pick.a === actual.a;
 
-  participants.forEach(p => {
-    const pick = picks[p.id]?.[m.idEvent];
-    const hVal = pick?.h !== undefined ? pick.h : '';
-    const aVal = pick?.a !== undefined ? pick.a : '';
-    const isWinner = winnerIds.includes(p.id);
-    const isExact  = actual && pick && pick.h === actual.h && pick.a === actual.a;
-
-    // Result badge
-    let badge = `<span class="badge-none">미입력</span>`;
-    if (actual && pick !== undefined) {
-      if (isWinner) {
-        const share = pot / winners.length;
-        const net   = share - p.bet;
-        const label = isExact ? '🎯 정확!' : `📍 최근접`;
-        const color = isExact ? 'badge-exact' : 'badge-close';
-        badge = `<span class="${color}">${label}<br>+${Math.round(net).toLocaleString()}원</span>`;
-      } else if (pick) {
-        badge = `<span class="badge-lose">❌<br>-${p.bet.toLocaleString()}원</span>`;
-      } else {
-        badge = `<span class="badge-none">미입력</span>`;
+      let badge = `<span class="badge-none result-badge">미입력</span>`;
+      if (actual && pick !== undefined) {
+        if (isWinner) {
+          const share = pot / winners.length;
+          const net = share - p.bet;
+          const label = isExact ? '🎯 정확!' : '📍 최근접';
+          const cls = isExact ? 'badge-exact' : 'badge-close';
+          badge = `<span class="${cls} result-badge">${label}<br>+${Math.round(net).toLocaleString()}원</span>`;
+        } else if (pick) {
+          badge = `<span class="badge-lose result-badge">❌ -${p.bet.toLocaleString()}원</span>`;
+        }
       }
-    }
 
-    html += `<tr>
-      <td class="p-name">👤 ${p.name}<br><span style="font-size:.72rem;color:#aaa;font-weight:400">${p.bet.toLocaleString()}원</span></td>
-      <td>
+      betRowsHTML += `<div class="bet-row">
+        <div class="bet-pname">👤 ${p.name}<br><span class="bet-amount">${p.bet.toLocaleString()}원</span></div>
         <div class="score-cell">
           <input class="s-inp" type="number" min="0" max="20"
-            value="${hVal}" placeholder="0"
+            value="${hVal}" placeholder="-"
             data-pid="${p.id}" data-mid="${m.idEvent}" data-side="h"
             ${done ? 'disabled' : ''} />
           <span class="colon">:</span>
           <input class="s-inp" type="number" min="0" max="20"
-            value="${aVal}" placeholder="0"
+            value="${aVal}" placeholder="-"
             data-pid="${p.id}" data-mid="${m.idEvent}" data-side="a"
             ${done ? 'disabled' : ''} />
         </div>
-      </td>
-      <td class="result-cell">${badge}</td>
-    </tr>`;
-  });
+        ${badge}
+      </div>`;
+    });
+    betRowsHTML += '</div>';
 
-  html += `</tbody></table>`;
-
-  // Pot info + save button
-  if (!done) {
-    html += `<div class="pot-row">
-      <span class="pot-info">
-        총 판돈: <strong>${potAll.toLocaleString()}원</strong>
-        (${participants.map(p=>`${p.name} ${p.bet.toLocaleString()}원`).join(' + ')})
-      </span>
-      <button class="btn sm green" onclick="saveMatchPicks('${m.idEvent}')">💾 저장</button>
-    </div>`;
-  } else if (winners.length) {
-    const typeLabel = type === 'exact' ? '정확한 스코어 적중' : `최근접 예측 (오차 ${matchWinners(m).dist}골)`;
-    html += `<div style="margin-top:8px;padding:8px 10px;background:#f0fff4;border-radius:7px;font-size:.82rem;color:#1e8449">
-      🏆 <strong>${winners.map(p=>p.name).join(', ')}</strong> 승리 — ${typeLabel} — 각 ${Math.round(pot/winners.length).toLocaleString()}원 수령
-    </div>`;
+    // Save row or winner box
+    if (!done) {
+      const potAll = participants.reduce((s,p) => s + p.bet, 0);
+      betRowsHTML += `<div class="save-row">
+        <span class="pot-info">총 판돈: <strong>${potAll.toLocaleString()}원</strong></span>
+        <button class="btn sm green" onclick="saveMatchPicks('${m.idEvent}')">💾 저장</button>
+      </div>`;
+    } else if (winners.length) {
+      const typeLabel = type === 'exact' ? '정확한 스코어 적중' : `최근접 예측 (오차 ${matchWinners(m).dist}골)`;
+      betRowsHTML += `<div class="winner-box">🏆 <strong>${winners.map(p=>p.name).join(', ')}</strong> 승리 — ${typeLabel} — 각 ${Math.round(pot/winners.length).toLocaleString()}원 수령</div>`;
+    }
   }
 
-  return html;
+  return `<div class="match-card" id="mcard-${m.idEvent}">
+    <div class="match-top">
+      <div class="match-row">
+        <span class="team r">${flag(m.strHomeTeam)} ${m.strHomeTeam}</span>
+        <div class="mid">
+          <div id="ai-${m.idEvent}">${ai ? `<span class="ai-score">${ai.best.h}:${ai.best.a}</span>` : '<span style="color:#ccc;font-size:.72rem">AI 분석 중...</span>'}</div>
+          ${done ? `<div class="actual-score">${done.h} : ${done.a}</div>` : `<div class="match-date">${date}</div>`}
+        </div>
+        <span class="team">${flag(m.strAwayTeam)} ${m.strAwayTeam}</span>
+      </div>
+      <div class="prob-bar" id="prob-${m.idEvent}">
+        ${ai
+          ? `<div class="ph" style="width:${ai.hw}%">홈 ${ai.hw}%</div><div class="pd" style="width:${ai.dw}%">무 ${ai.dw}%</div><div class="pa" style="width:${ai.aw}%">원정 ${ai.aw}%</div>`
+          : `<div class="ph" style="width:40%">홈</div><div class="pd" style="width:20%">무</div><div class="pa" style="width:40%">원정</div>`}
+      </div>
+    </div>
+    <div class="bet-panel">
+      ${aiHintHTML}
+      ${betRowsHTML}
+    </div>
+  </div>`;
+}
+
+function buildAiHintHTML(matchId, ai) {
+  const top3 = ai.top3.map(s=>`${s.h}:${s.a}`).join(' / ');
+  return `<div class="ai-hint" id="ai-hint-${matchId}">
+    🤖 AI 예측: <strong>${ai.best.h}:${ai.best.a}</strong> &nbsp;|&nbsp;
+    홈 <strong style="color:#3498db">${ai.hw}%</strong>
+    무 <strong style="color:#95a5a6">${ai.dw}%</strong>
+    원정 <strong style="color:#e74c3c">${ai.aw}%</strong>
+    <span style="font-size:.7rem;color:#bbb">(상위3: ${top3})</span>
+  </div>`;
 }
 
 /* ===== SAVE PICKS ===== */
@@ -440,20 +441,23 @@ function saveMatchPicks(matchId) {
     saved = true;
   });
   if (!saved) { alert('스코어를 입력해주세요'); return; }
-  // Only keep complete picks (both h and a filled)
   participants.forEach(p => {
     const pk = picks[p.id]?.[matchId];
     if (pk && (pk.h === undefined || pk.a === undefined)) delete picks[p.id][matchId];
   });
   localStorage.setItem(PICKS_KEY, JSON.stringify(picks));
-  // Re-render this match's panel
+  // Re-render this card
   const m = wMatches.find(m => m.idEvent === matchId);
-  const el = document.getElementById('expand-'+matchId);
-  if (m && el) el.innerHTML = betPanelHTML(m);
+  const card = document.getElementById('mcard-'+matchId);
+  if (m && card) {
+    const newCard = document.createElement('div');
+    newCard.innerHTML = matchCardHTML(m);
+    card.replaceWith(newCard.firstElementChild);
+  }
   updateSettlement();
-  // Quick visual feedback
+  // Visual feedback
   const btn = document.querySelector(`button[onclick="saveMatchPicks('${matchId}')"]`);
-  if (btn) { const orig = btn.textContent; btn.textContent = '✅ 저장됨'; setTimeout(() => btn.textContent = orig, 1200); }
+  if (btn) { const o = btn.textContent; btn.textContent = '✅ 저장됨'; setTimeout(()=>btn.textContent=o, 1200); }
 }
 
 /* ===== PARTICIPANTS ===== */
@@ -467,6 +471,8 @@ function addParticipant() {
   localStorage.setItem(PARTS_KEY, JSON.stringify(participants));
   document.getElementById('p-name').value = '';
   renderParticipants();
+  // Re-render match list to show new participant rows
+  if (wMatches.length) renderMatchList(document.getElementById('matches-list'));
   updateSettlement();
 }
 
@@ -475,6 +481,7 @@ function removeParticipant(id) {
   participants = participants.filter(p => p.id !== id);
   localStorage.setItem(PARTS_KEY, JSON.stringify(participants));
   renderParticipants();
+  if (wMatches.length) renderMatchList(document.getElementById('matches-list'));
   updateSettlement();
 }
 
@@ -499,10 +506,8 @@ function updateSettlement() {
     el.innerHTML = '<p style="text-align:center;color:#ccc;font-size:.85rem;padding:12px">참가자 추가 후 자동 계산됩니다</p>';
     return;
   }
-
-  const balance = {}, wins = {}, matched = {};
-  participants.forEach(p => { balance[p.id] = 0; wins[p.id] = 0; matched[p.id] = 0; });
-
+  const balance = {}, wins = {};
+  participants.forEach(p => { balance[p.id] = 0; wins[p.id] = 0; });
   let completedCount = 0;
   wMatches.forEach(m => {
     const actual = actualResult(m);
@@ -510,17 +515,14 @@ function updateSettlement() {
     completedCount++;
     const entered = participants.filter(p => picks[p.id]?.[m.idEvent]?.h !== undefined);
     if (!entered.length) return;
-    const { winners, type } = matchWinners(m);
+    const { winners } = matchWinners(m);
     const pot = entered.reduce((s,p) => s + p.bet, 0);
     entered.forEach(p => {
       if (winners.find(w => w.id === p.id)) {
-        const share = pot / winners.length;
-        balance[p.id] += share - p.bet;
+        balance[p.id] += pot / winners.length - p.bet;
         wins[p.id]++;
-        matched[p.id]++;
       } else {
         balance[p.id] -= p.bet;
-        matched[p.id]++;
       }
     });
   });
@@ -549,10 +551,8 @@ function updateSettlement() {
     </div>`;
   }).join('');
 
-  // Transaction settlement
   const pos = participants.filter(p => balance[p.id] >  0.5).map(p => ({name:p.name, amt:  balance[p.id]})).sort((a,b)=>b.amt-a.amt);
   const neg = participants.filter(p => balance[p.id] < -0.5).map(p => ({name:p.name, amt: -balance[p.id]})).sort((a,b)=>b.amt-a.amt);
-
   if (neg.length && completedCount > 0) {
     html += `<div style="border-top:2px solid #eef2f7;margin-top:12px;padding-top:12px">
       <div style="font-weight:700;color:#333;margin-bottom:8px">💸 정산 내역 (최소 거래)</div>`;
@@ -560,14 +560,7 @@ function updateSettlement() {
     let i=0,j=0;
     while(i<n2.length && j<p2.length){
       const amt = Math.min(n2[i].amt, p2[j].amt);
-      if(amt >= 1){
-        html += `<div class="txn">
-          <span style="font-weight:700">${n2[i].name}</span>
-          <span class="txn-arrow">→</span>
-          <span style="font-weight:700">${p2[j].name}</span>
-          <span class="txn-amt">${Math.round(amt).toLocaleString()}원</span>
-        </div>`;
-      }
+      if(amt >= 1) html += `<div class="txn"><span style="font-weight:700">${n2[i].name}</span><span class="txn-arrow">→</span><span style="font-weight:700">${p2[j].name}</span><span class="txn-amt">${Math.round(amt).toLocaleString()}원</span></div>`;
       n2[i].amt -= amt; p2[j].amt -= amt;
       if(n2[i].amt < 1) i++; if(p2[j].amt < 1) j++;
     }
@@ -575,7 +568,6 @@ function updateSettlement() {
   } else if (!completedCount) {
     html += `<p style="text-align:center;color:#bbb;font-size:.82rem;padding:10px;border-top:1px solid #f0f4f8;margin-top:10px">경기 결과가 나오면 자동으로 계산됩니다</p>`;
   }
-
   el.innerHTML = html;
 }
 
@@ -584,16 +576,18 @@ async function startAIProgress() {
   for (const m of wMatches.slice(0, 32)) {
     try {
       const pred = await aiPredict(m.idEvent, m.strHomeTeam, m.strAwayTeam);
+      // Update AI score pill
       const aiEl = document.getElementById('ai-'+m.idEvent);
       if (aiEl) aiEl.innerHTML = `<span class="ai-score">${pred.best.h}:${pred.best.a}</span>`;
+      // Update prob bar
       const probEl = document.getElementById('prob-'+m.idEvent);
       if (probEl) probEl.innerHTML = `
         <div class="ph" style="width:${pred.hw}%">홈 ${pred.hw}%</div>
         <div class="pd" style="width:${pred.dw}%">무 ${pred.dw}%</div>
         <div class="pa" style="width:${pred.aw}%">원정 ${pred.aw}%</div>`;
-      // If this match's panel is open, refresh it too
-      const panel = document.getElementById('expand-'+m.idEvent);
-      if (panel && panel.style.display !== 'none') panel.innerHTML = betPanelHTML(m);
+      // Update AI hint in bet panel
+      const hintEl = document.getElementById('ai-hint-'+m.idEvent);
+      if (hintEl) hintEl.outerHTML = buildAiHintHTML(m.idEvent, pred);
     } catch {}
     await new Promise(r => setTimeout(r, 120));
   }
