@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>로또 번호 생성기 – v16</title>
+  <title>로또 & 월드컵 예측기</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.5.0/kakao.min.js" defer></script>
@@ -27,143 +27,473 @@
     .share-btn img{width:28px;height:28px;}
     #error{color:var(--red);text-align:center;margin-top:6px;}
     canvas{max-width:100%;}
-    @media (max-width:700px){.container{padding:0 2vw;}}
+    @media(max-width:700px){.container{padding:0 2vw;}}
+
+    /* Tabs */
+    .tabs{display:flex;background:#e8edf2;border-radius:12px;padding:4px;gap:4px;}
+    .tab-btn{flex:1;padding:11px;border:none;border-radius:8px;cursor:pointer;font-size:1rem;font-weight:600;background:transparent;color:#666;transition:all .18s;}
+    .tab-btn.active{background:#fff;color:var(--primary);box-shadow:0 2px 8px rgba(0,0,0,.1);}
+
+    /* World Cup */
+    .wc-match{border:1px solid #eee;border-radius:10px;padding:12px;margin:8px 0;}
+    .wc-teams{display:flex;align-items:center;justify-content:center;gap:10px;font-weight:600;flex-wrap:wrap;}
+    .wc-team{min-width:90px;text-align:center;font-size:.95em;}
+    .wc-score-input{width:46px;height:38px;text-align:center;font-size:1.1rem;font-weight:700;border:2px solid #ddd;border-radius:6px;padding:4px;transition:border-color .15s;}
+    .wc-score-input:focus{border-color:var(--primary);outline:none;}
+    .wc-score-input:disabled{background:#f5f5f5;color:#aaa;border-color:#eee;}
+    .wc-vs{color:#ccc;}
+    .wc-meta{text-align:center;margin-top:6px;font-size:.82em;display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap;}
+    .wc-result{font-weight:700;color:#333;background:#f0f4f8;padding:2px 10px;border-radius:4px;}
+    .wc-done{color:var(--green);font-weight:600;}
+    .wc-soon{color:var(--orange);}
+    .wc-pts{font-size:.8em;font-weight:700;padding:2px 10px;border-radius:12px;}
+    .wc-pts.exact{background:#d5f5e3;color:#1e8449;}
+    .wc-pts.outcome{background:#fef9e7;color:#b7950b;}
+    .wc-pts.wrong{background:#fdecea;color:#c0392b;}
+    .wc-round{font-weight:700;color:#444;margin:14px 0 4px;padding:6px 10px;background:#f0f4f8;border-radius:6px;font-size:.92em;}
+    .wc-code-box{word-break:break-all;font-size:.72em;background:#f4f4f4;padding:10px;border-radius:6px;font-family:monospace;margin:8px 0;border:1px solid #e0e0e0;line-height:1.5;}
+    .lb-row{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid #f5f5f5;}
+    .lb-rank{width:30px;height:30px;border-radius:50%;background:#ccc;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9em;flex-shrink:0;}
+    .lb-rank.gold{background:var(--orange);}
+    .lb-rank.silver{background:#95a5a6;}
+    .lb-rank.bronze{background:#cd7f32;}
+    .lb-pts{font-size:1.3rem;font-weight:700;color:var(--primary);}
+    .wc-input-text{width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:.95rem;font-family:Arial,sans-serif;}
+    .wc-input-text:focus{border-color:var(--primary);outline:none;}
   </style>
 </head>
 <body>
   <div class="container">
-    <section class="card" id="card-latest">
-      <h1 style="background:linear-gradient(90deg,var(--red),var(--orange),var(--green),var(--blue),var(--purple));-webkit-background-clip:text;color:transparent;font-weight:700">로또 번호 생성기 🎉</h1>
-      <h3 id="last-info">통계를 통한 AI 번호 추천번호 생성중...</h3>
-      <div id="last-numbers" class="set"></div>
-      <div class="progress-bar"><div class="progress-bar-inner"></div></div>
-    </section>
-    <section class="card">
-      <h2>추천 번호 3세트 (TOP 100 풀)</h2>
-      <div id="recommended"></div>
-    </section>
-    <section class="card">
-      <h2>일반 번호 2세트</h2>
-      <div id="random"></div>
-      <div style="display:flex;justify-content:center;gap:12px;margin-top:12px;">
-        <button class="btn" onclick="generate()">새로운 번호 생성</button>
-        <button class="btn" id="btn-shot">📸 캡처 PNG</button>
+
+    <!-- Tab switcher -->
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-btn-lotto" onclick="showTab('lotto')">🎱 로또 번호</button>
+      <button class="tab-btn" id="tab-btn-wc" onclick="showTab('wc')">⚽ 월드컵 예측</button>
+    </div>
+
+    <!-- ===== LOTTO TAB ===== -->
+    <div id="tab-lotto">
+      <section class="card" id="card-latest">
+        <h1 style="background:linear-gradient(90deg,var(--red),var(--orange),var(--green),var(--blue),var(--purple));-webkit-background-clip:text;color:transparent;font-weight:700">로또 번호 생성기 🎉</h1>
+        <h3 id="last-info">통계를 통한 AI 번호 추천번호 생성중...</h3>
+        <div id="last-numbers" class="set"></div>
+        <div class="progress-bar"><div class="progress-bar-inner"></div></div>
+      </section>
+      <section class="card">
+        <h2>추천 번호 3세트 (TOP 100 풀)</h2>
+        <div id="recommended"></div>
+      </section>
+      <section class="card">
+        <h2>일반 번호 2세트</h2>
+        <div id="random"></div>
+        <div style="display:flex;justify-content:center;gap:12px;margin-top:12px;">
+          <button class="btn" onclick="generate()">새로운 번호 생성</button>
+          <button class="btn" id="btn-shot">📸 캡처 PNG</button>
+        </div>
+      </section>
+      <section class="card">
+        <h3>최근 100회 빈도 상위 6개</h3>
+        <div id="top-six" class="set"></div>
+        <canvas id="freqChart" height="240"></canvas>
+      </section>
+      <section class="card">
+        <h2>공유하기</h2>
+        <div class="share-row">
+          <button class="btn share-btn" id="share-kakao"><img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/kakaotalk.svg" alt="kakao">카카오톡</button>
+          <button class="btn share-btn" id="share-twitter"><img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/x.svg" alt="twitter">X(트위터)</button>
+          <button class="btn share-btn" id="share-copy"><img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/link.svg" alt="copy">링크 복사</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===== WORLD CUP TAB ===== -->
+    <div id="tab-wc" style="display:none">
+
+      <div class="card">
+        <h1 style="margin:4px 0">⚽ 2026 FIFA 월드컵</h1>
+        <p style="text-align:center;color:#888;margin:4px 0 12px">스코어 예측 &amp; 친구 내기</p>
+        <div style="display:flex;align-items:center;gap:8px;justify-content:center">
+          <label style="font-weight:600;white-space:nowrap">내 이름</label>
+          <input type="text" id="wc-my-name" class="wc-input-text" placeholder="이름을 입력하세요" style="max-width:200px" />
+        </div>
       </div>
-    </section>
-    <section class="card">
-      <h3>최근 100회 빈도 상위 6개</h3>
-      <div id="top-six" class="set"></div>
-      <canvas id="freqChart" height="240"></canvas>
-    </section>
-    <section class="card">
-      <h2>공유하기</h2>
-      <div class="share-row">
-        <button class="btn share-btn" id="share-kakao"><img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/kakaotalk.svg" alt="kakao">카카오톡</button>
-        <button class="btn share-btn" id="share-twitter"><img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/x.svg" alt="twitter">X(트위터)</button>
-        <button class="btn share-btn" id="share-copy"><img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/link.svg" alt="copy">링크 복사</button>
+
+      <div class="card">
+        <h2>경기 스코어 예측</h2>
+        <p style="text-align:center;color:#888;font-size:.85em;margin:4px 0 12px">각 경기의 예상 스코어를 입력하고 저장하세요</p>
+        <div id="wc-matches-container">
+          <div style="text-align:center;padding:36px;color:#aaa">⏳ 경기 데이터 로딩 중...</div>
+        </div>
+        <div style="display:flex;justify-content:center;gap:10px;margin-top:14px;flex-wrap:wrap;">
+          <button class="btn" onclick="wcSavePredictions()">💾 예측 저장</button>
+          <button class="btn" onclick="wcGenerateCode()">📋 내 코드 생성</button>
+        </div>
+        <div id="wc-my-code" style="margin-top:8px"></div>
       </div>
-    </section>
+
+      <div class="card">
+        <h2>👥 친구와 내기하기</h2>
+        <p style="text-align:center;color:#666;font-size:.85em;margin:4px 0 12px">
+          친구의 예측 코드를 받아 추가하면 점수를 비교합니다
+        </p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <input type="text" id="wc-friend-name" class="wc-input-text" placeholder="친구 이름 (선택)" />
+          <textarea id="wc-friend-code" class="wc-input-text" placeholder="친구 예측 코드 붙여넣기" rows="3" style="resize:vertical;font-family:monospace;font-size:.8em"></textarea>
+          <button class="btn" onclick="wcAddFriend()" style="max-width:180px;margin:0 auto">➕ 친구 추가</button>
+        </div>
+        <div id="wc-friends-list" style="margin-top:10px"></div>
+      </div>
+
+      <div class="card">
+        <h2>🏆 점수판</h2>
+        <p style="text-align:center;color:#888;font-size:.82em;margin:4px 0 10px">
+          정확한 스코어 <strong>3점</strong> &nbsp;|&nbsp; 승무패 적중 <strong>1점</strong>
+        </p>
+        <div id="wc-leaderboard"></div>
+      </div>
+
+    </div>
+
     <div id="error"></div>
   </div>
-<script>
-const KAKAO_APP_KEY = '13aaec94bd811a32bbb688c8b1a37ba2'; // 본인 앱키로 변경 가능
 
-// 카카오 SDK 준비 (defer 대응)
+<script>
+/* ============================================================
+   SHARED
+   ============================================================ */
+const KAKAO_APP_KEY = '13aaec94bd811a32bbb688c8b1a37ba2';
+
 function kakaoInitIfNeeded() {
-  if (window.Kakao && !window.Kakao.isInitialized()) {
-    Kakao.init(KAKAO_APP_KEY);
-  }
+  if (window.Kakao && !window.Kakao.isInitialized()) Kakao.init(KAKAO_APP_KEY);
 }
 if (document.readyState === 'complete') kakaoInitIfNeeded();
 else window.addEventListener('DOMContentLoaded', kakaoInitIfNeeded);
 
-const PROXIES=[
-  u=>`https://thingproxy.freeboard.io/fetch/${u}`,
-  u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  u=>`https://corsproxy.io/?${encodeURIComponent(u)}`
+const PROXIES = [
+  u => `https://thingproxy.freeboard.io/fetch/${u}`,
+  u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u => `https://corsproxy.io/?${encodeURIComponent(u)}`
 ];
-async function fetchJSON(u){
-  for(const p of PROXIES){
-    try{return await fetch(p(u)).then(r=>r.json());}catch{}
+async function fetchJSON(u) {
+  for (const p of PROXIES) {
+    try { return await fetch(p(u)).then(r => r.json()); } catch {}
   }
   return null;
 }
-const colorClass=n=>n<=10?'r1':n<=20?'r2':n<=30?'r3':n<=40?'r4':'r5';
-const ball=n=>`<span class="num ${colorClass(n)}">${n}</span>`;
-function score(set, freqMap) { return set.reduce((a,n)=>a+(freqMap[n]||0),0); }
+
+function showTab(name) {
+  ['lotto', 'wc'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === name ? '' : 'none';
+    document.getElementById('tab-btn-' + t).classList.toggle('active', t === name);
+  });
+  if (name === 'wc' && !wcLoaded) wcLoad();
+}
+
+/* ============================================================
+   LOTTO
+   ============================================================ */
+const colorClass = n => n <= 10 ? 'r1' : n <= 20 ? 'r2' : n <= 30 ? 'r3' : n <= 40 ? 'r4' : 'r5';
+const ball = n => `<span class="num ${colorClass(n)}">${n}</span>`;
+function lottoScore(set, freqMap) { return set.reduce((a, n) => a + (freqMap[n] || 0), 0); }
 function renderSetWithScore(el, arrs, freqMap) {
   el.innerHTML = arrs.map(a =>
-    `<div class="score">빈도 합계: ${score(a, freqMap)}점</div><div class="set">${a.map(ball).join('')}</div>`
+    `<div class="score">빈도 합계: ${lottoScore(a, freqMap)}점</div><div class="set">${a.map(ball).join('')}</div>`
   ).join('');
 }
-function renderSet(el,arrs){el.innerHTML=arrs.map(a=>`<div class="set">${a.map(ball).join('')}</div>`).join('');}
-function pick(pool){const s=pool.slice(),o=[];while(o.length<6&&s.length)o.push(s.splice(Math.random()*s.length|0,1)[0]);return o.sort((a,b)=>a-b);}
-async function latestNo(){
-  const w=Math.floor((Date.now()-Date.UTC(2002,11,7))/6048e5)+5;
-  for(let n=w;n>w-60;n--){
-    const d=await fetchJSON(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${n}`);
-    if(d&&d.returnValue==='success')return n;
+function renderSet(el, arrs) { el.innerHTML = arrs.map(a => `<div class="set">${a.map(ball).join('')}</div>`).join(''); }
+function pick(pool) { const s = pool.slice(), o = []; while (o.length < 6 && s.length) o.push(s.splice(Math.random() * s.length | 0, 1)[0]); return o.sort((a, b) => a - b); }
+async function latestNo() {
+  const w = Math.floor((Date.now() - Date.UTC(2002, 11, 7)) / 6048e5) + 5;
+  for (let n = w; n > w - 60; n--) {
+    const d = await fetchJSON(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${n}`);
+    if (d && d.returnValue === 'success') return n;
   }
-  throw'최신 회차 실패';
+  throw '최신 회차 실패';
 }
 let chart;
-async function generate(){
-  const err=document.getElementById('error');err.textContent='';
-  const bar=document.querySelector('.progress-bar-inner');bar.style.width='0%';
-  try{
-    const latest=await latestNo();
-    const res=await Promise.allSettled([...Array(100).keys()].map(i=>latest-i).map(n=>fetchJSON(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${n}`)));
-    const freq={},tot=res.length;
-    res.forEach((r,i)=>{
-      if(r.status==='fulfilled'&&r.value&&r.value.returnValue==='success'){
-        for(let k=1;k<=6;k++){
-          const n=r.value[`drwtNo${k}`];
-          freq[n]=(freq[n]||0)+1;
-        }
+async function generate() {
+  const err = document.getElementById('error'); err.textContent = '';
+  const bar = document.querySelector('.progress-bar-inner'); bar.style.width = '0%';
+  try {
+    const latest = await latestNo();
+    const res = await Promise.allSettled([...Array(100).keys()].map(i => latest - i).map(n => fetchJSON(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${n}`)));
+    const freq = {}, tot = res.length;
+    res.forEach((r, i) => {
+      if (r.status === 'fulfilled' && r.value && r.value.returnValue === 'success') {
+        for (let k = 1; k <= 6; k++) { const n = r.value[`drwtNo${k}`]; freq[n] = (freq[n] || 0) + 1; }
       }
-      bar.style.width=`${((i+1)/tot*100).toFixed(0)}%`;
+      bar.style.width = `${((i + 1) / tot * 100).toFixed(0)}%`;
     });
-    const latestData=res[0].status==='fulfilled'?res[0].value:null;
-    document.getElementById('last-info').textContent=`최근 회차 ${latest} 번호`;
-    document.getElementById('last-numbers').innerHTML=latestData?[...Array(6)].map((_,i)=>ball(latestData[`drwtNo${i+1}`])).join(''):'조회 실패';
-    const sorted=Object.entries(freq).sort((a,b)=>b[1]-a[1]);
-    const pool=sorted.slice(0,100).map(([n])=>+n);
-    const recSets=Array.from({length:3},()=>pick(pool));
-    const rndSets=Array.from({length:2},()=>pick([...Array(45)].map((_,i)=>i+1)));
-    renderSetWithScore(document.getElementById('recommended'),recSets, freq);
-    renderSetWithScore(document.getElementById('random'),rndSets, freq);
-    const top6=sorted.slice(0,6).map(([n])=>+n).sort((a,b)=>a-b);
-    renderSet(document.getElementById('top-six'),[top6]);
-    if(chart&&typeof chart.destroy==='function')chart.destroy();
-    chart=new Chart(document.getElementById('freqChart'),{type:'bar',data:{labels:Object.keys(freq),datasets:[{data:Object.values(freq),backgroundColor:Object.keys(freq).map(n=>({r1:'#e74c3c',r2:'#f39c12',r3:'#27ae60',r4:'#2980b9',r5:'#8e44ad'}[colorClass(+n)]))}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
-    const url=location.href.split('?')[0];
-    window.shareText=`${url}\n[추천]\n${recSets.map(s=>s.join(', ')).join('\n')}\n[일반]\n${rndSets.map(s=>s.join(', ')).join('\n')}`;
-  }catch(e){console.error(e);err.textContent=e;}
+    const latestData = res[0].status === 'fulfilled' ? res[0].value : null;
+    document.getElementById('last-info').textContent = `최근 회차 ${latest} 번호`;
+    document.getElementById('last-numbers').innerHTML = latestData ? [...Array(6)].map((_, i) => ball(latestData[`drwtNo${i + 1}`])).join('') : '조회 실패';
+    const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+    const pool = sorted.slice(0, 100).map(([n]) => +n);
+    const recSets = Array.from({ length: 3 }, () => pick(pool));
+    const rndSets = Array.from({ length: 2 }, () => pick([...Array(45)].map((_, i) => i + 1)));
+    renderSetWithScore(document.getElementById('recommended'), recSets, freq);
+    renderSetWithScore(document.getElementById('random'), rndSets, freq);
+    const top6 = sorted.slice(0, 6).map(([n]) => +n).sort((a, b) => a - b);
+    renderSet(document.getElementById('top-six'), [top6]);
+    if (chart && typeof chart.destroy === 'function') chart.destroy();
+    chart = new Chart(document.getElementById('freqChart'), { type: 'bar', data: { labels: Object.keys(freq), datasets: [{ data: Object.values(freq), backgroundColor: Object.keys(freq).map(n => ({ r1: '#e74c3c', r2: '#f39c12', r3: '#27ae60', r4: '#2980b9', r5: '#8e44ad' }[colorClass(+n)])) }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+    const url = location.href.split('?')[0];
+    window.shareText = `${url}\n[추천]\n${recSets.map(s => s.join(', ')).join('\n')}\n[일반]\n${rndSets.map(s => s.join(', ')).join('\n')}`;
+  } catch (e) { console.error(e); err.textContent = e; }
 }
-// 캡처 PNG 저장
-document.getElementById('btn-shot').onclick=()=>html2canvas(document.body).then(c=>{const a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='lotto.png';a.click();});
-// 트위터 공유
-const openWin=(u)=>window.open(u,'_blank');
-document.getElementById('share-twitter').onclick=()=>openWin(`https://twitter.com/intent/tweet?text=${encodeURIComponent(window.shareText)}`);
-// 링크 복사
-document.getElementById('share-copy').onclick=async()=>{await navigator.clipboard.writeText(window.shareText);alert('복사되었습니다!');};
-// 카카오톡 PC/웹 공유 (이미지 없이)
-document.getElementById('share-kakao').onclick=()=>{
+document.getElementById('btn-shot').onclick = () => html2canvas(document.body).then(c => { const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = 'lotto.png'; a.click(); });
+const openWin = u => window.open(u, '_blank');
+document.getElementById('share-twitter').onclick = () => openWin(`https://twitter.com/intent/tweet?text=${encodeURIComponent(window.shareText)}`);
+document.getElementById('share-copy').onclick = async () => { await navigator.clipboard.writeText(window.shareText); alert('복사되었습니다!'); };
+document.getElementById('share-kakao').onclick = () => {
   kakaoInitIfNeeded();
-  if(!window.Kakao?.isInitialized()) return alert('카카오 SDK 미초기화');
+  if (!window.Kakao?.isInitialized()) return alert('카카오 SDK 미초기화');
   window.Kakao.Share.sendDefault({
-    objectType:'feed',
-    content:{
-      title:'로또 번호 생성기 - AI 추천',
-      description: window.shareText.replace(/^https?:\/\/\S+\n?/,'').slice(0,100),
-      link:{ mobileWebUrl:location.href, webUrl: location.href }
+    objectType: 'feed',
+    content: {
+      title: '로또 번호 생성기 - AI 추천',
+      description: window.shareText.replace(/^https?:\/\/\S+\n?/, '').slice(0, 100),
+      link: { mobileWebUrl: location.href, webUrl: location.href }
     },
-    buttons: [
-      { title: '웹에서 보기', link: { mobileWebUrl: location.href, webUrl: location.href } }
-    ]
+    buttons: [{ title: '웹에서 보기', link: { mobileWebUrl: location.href, webUrl: location.href } }]
   });
 };
-document.addEventListener('DOMContentLoaded',generate);
+document.addEventListener('DOMContentLoaded', generate);
+
+/* ============================================================
+   WORLD CUP
+   ============================================================ */
+const WC_PREDS_KEY   = 'wc2026_preds';
+const WC_FRIENDS_KEY = 'wc2026_friends';
+const WC_NAME_KEY    = 'wc2026_name';
+
+let wcLoaded  = false;
+let wcMatches = [];
+let wcPreds   = JSON.parse(localStorage.getItem(WC_PREDS_KEY)   || '{}');
+let wcFriends = JSON.parse(localStorage.getItem(WC_FRIENDS_KEY) || '[]');
+
+async function wcLoad() {
+  wcLoaded = true;
+  const container = document.getElementById('wc-matches-container');
+
+  const savedName = localStorage.getItem(WC_NAME_KEY);
+  if (savedName) document.getElementById('wc-my-name').value = savedName;
+
+  try {
+    // Try season endpoint first, fall back to past+next combined
+    let events = null;
+    const seasonRes = await fetch('https://www.thesportsdb.com/api/v1/json/3/eventsseason.php?id=4480&s=2026')
+      .then(r => r.json()).catch(() => null);
+    events = seasonRes?.events;
+
+    if (!events || events.length === 0) {
+      const [past, next] = await Promise.all([
+        fetch('https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=4480').then(r => r.json()).catch(() => null),
+        fetch('https://www.thesportsdb.com/api/v1/json/3/eventsnextleague.php?id=4480').then(r => r.json()).catch(() => null),
+      ]);
+      events = [...(past?.events || []), ...(next?.events || [])];
+    }
+
+    wcMatches = (events || []).sort((a, b) => {
+      const da = new Date((a.dateEvent || '') + 'T' + (a.strTime || '00:00:00'));
+      const db = new Date((b.dateEvent || '') + 'T' + (b.strTime || '00:00:00'));
+      return da - db;
+    });
+
+    if (wcMatches.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center;padding:36px;color:#aaa">
+          <div style="font-size:2.5em;margin-bottom:10px">⚽</div>
+          <div style="font-weight:600;color:#888">경기 데이터를 불러올 수 없습니다</div>
+          <div style="font-size:.82em;margin-top:6px">TheSportsDB에 2026 월드컵 데이터가 아직 없을 수 있습니다.</div>
+        </div>`;
+      return;
+    }
+
+    wcRenderMatches(container);
+    wcRenderFriendsList();
+    wcUpdateLeaderboard();
+  } catch (e) {
+    container.innerHTML = `<div style="text-align:center;color:var(--red);padding:24px">오류: ${e.message}</div>`;
+  }
+}
+
+function wcRenderMatches(container) {
+  const rounds = {};
+  wcMatches.forEach(m => {
+    const r = m.strRound || `라운드 ${m.intRound || '?'}`;
+    if (!rounds[r]) rounds[r] = [];
+    rounds[r].push(m);
+  });
+
+  let html = '';
+  for (const [round, matches] of Object.entries(rounds)) {
+    html += `<div class="wc-round">📅 ${round}</div>`;
+    for (const m of matches) {
+      const id = m.idEvent;
+      const done = m.intHomeScore != null && m.intHomeScore !== '';
+      const p = wcPreds[id] || {};
+      const dateStr = m.dateEvent
+        ? new Date(m.dateEvent + 'T12:00:00').toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' })
+        : '';
+
+      let metaHtml = `<span class="wc-soon">${dateStr}</span>`;
+      if (done) {
+        metaHtml = `<span class="wc-result">${m.intHomeScore} : ${m.intAwayScore}</span><span class="wc-done">종료</span>`;
+      }
+
+      let ptsHtml = '';
+      if (done && p.h != null && p.a != null) {
+        const pts = wcMatchPts(p, { h: +m.intHomeScore, a: +m.intAwayScore });
+        ptsHtml = pts === 3
+          ? `<span class="wc-pts exact">🎯 3점</span>`
+          : pts === 1
+          ? `<span class="wc-pts outcome">✅ 1점</span>`
+          : `<span class="wc-pts wrong">❌ 0점</span>`;
+      }
+
+      html += `<div class="wc-match">
+        <div class="wc-teams">
+          <span class="wc-team">${m.strHomeTeam}</span>
+          <input class="wc-score-input" type="number" min="0" max="99"
+            value="${p.h != null ? p.h : ''}" placeholder="-"
+            data-id="${id}" data-side="h" ${done ? 'disabled' : ''} />
+          <span class="wc-vs">:</span>
+          <input class="wc-score-input" type="number" min="0" max="99"
+            value="${p.a != null ? p.a : ''}" placeholder="-"
+            data-id="${id}" data-side="a" ${done ? 'disabled' : ''} />
+          <span class="wc-team">${m.strAwayTeam}</span>
+        </div>
+        <div class="wc-meta">${metaHtml}${ptsHtml}</div>
+      </div>`;
+    }
+  }
+  container.innerHTML = html;
+}
+
+function wcMatchPts(pred, result) {
+  if (pred.h === result.h && pred.a === result.a) return 3;
+  if (Math.sign(pred.h - pred.a) === Math.sign(result.h - result.a)) return 1;
+  return 0;
+}
+
+function wcTotalPts(preds) {
+  let pts = 0, count = 0;
+  for (const m of wcMatches) {
+    if (m.intHomeScore == null || m.intHomeScore === '') continue;
+    const p = preds[m.idEvent];
+    if (!p || p.h == null || p.a == null) continue;
+    pts += wcMatchPts(p, { h: +m.intHomeScore, a: +m.intAwayScore });
+    count++;
+  }
+  return { pts, count };
+}
+
+function wcSavePredictions() {
+  document.querySelectorAll('.wc-score-input').forEach(inp => {
+    const val = inp.value.trim();
+    if (val === '') return;
+    const id = inp.dataset.id, side = inp.dataset.side;
+    if (!wcPreds[id]) wcPreds[id] = {};
+    wcPreds[id][side] = +val;
+  });
+  localStorage.setItem(WC_PREDS_KEY, JSON.stringify(wcPreds));
+  const name = document.getElementById('wc-my-name').value.trim();
+  if (name) localStorage.setItem(WC_NAME_KEY, name);
+  wcRenderMatches(document.getElementById('wc-matches-container'));
+  wcUpdateLeaderboard();
+  alert('예측이 저장되었습니다! ✅');
+}
+
+function wcGenerateCode() {
+  const name = document.getElementById('wc-my-name').value.trim() || localStorage.getItem(WC_NAME_KEY) || '나';
+  const code = btoa(unescape(encodeURIComponent(JSON.stringify({ name, preds: wcPreds }))));
+  const el = document.getElementById('wc-my-code');
+  el.innerHTML = `
+    <p style="text-align:center;font-weight:600;color:var(--green);margin:8px 0">📋 내 예측 코드 – 친구에게 공유하세요</p>
+    <div class="wc-code-box" id="wc-code-text">${code}</div>
+    <div style="display:flex;justify-content:center">
+      <button class="btn" id="wc-copy-btn">📎 코드 복사</button>
+    </div>`;
+  document.getElementById('wc-copy-btn').onclick = () => {
+    navigator.clipboard.writeText(code).then(() => alert('코드가 복사되었습니다!'));
+  };
+}
+
+function wcAddFriend() {
+  const nameInput = document.getElementById('wc-friend-name').value.trim();
+  const codeInput = document.getElementById('wc-friend-code').value.trim();
+  if (!codeInput) { alert('코드를 입력하세요'); return; }
+  let data;
+  try {
+    data = JSON.parse(decodeURIComponent(escape(atob(codeInput))));
+  } catch {
+    alert('잘못된 코드입니다. 다시 확인해주세요.'); return;
+  }
+  const friendName = nameInput || data.name || '친구';
+  const idx = wcFriends.findIndex(f => f.name === friendName);
+  if (idx >= 0) wcFriends[idx] = { name: friendName, preds: data.preds };
+  else wcFriends.push({ name: friendName, preds: data.preds });
+  localStorage.setItem(WC_FRIENDS_KEY, JSON.stringify(wcFriends));
+  document.getElementById('wc-friend-name').value = '';
+  document.getElementById('wc-friend-code').value = '';
+  wcRenderFriendsList();
+  wcUpdateLeaderboard();
+  alert(`${friendName} 추가 완료! ✅`);
+}
+
+function wcRemoveFriend(idx) {
+  if (!confirm(`${wcFriends[idx].name}을(를) 삭제할까요?`)) return;
+  wcFriends.splice(idx, 1);
+  localStorage.setItem(WC_FRIENDS_KEY, JSON.stringify(wcFriends));
+  wcRenderFriendsList();
+  wcUpdateLeaderboard();
+}
+
+function wcRenderFriendsList() {
+  const el = document.getElementById('wc-friends-list');
+  if (!wcFriends.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `<p style="font-weight:600;color:#555;margin-bottom:6px">추가된 친구 ${wcFriends.length}명</p>` +
+    wcFriends.map((f, i) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 2px;border-bottom:1px solid #f0f0f0">
+        <span>👤 ${f.name}</span>
+        <button onclick="wcRemoveFriend(${i})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:.85em;padding:2px 8px">삭제</button>
+      </div>`).join('');
+}
+
+function wcUpdateLeaderboard() {
+  const el = document.getElementById('wc-leaderboard');
+  const myName = document.getElementById('wc-my-name')?.value.trim() || localStorage.getItem(WC_NAME_KEY) || '나';
+  const completedCount = wcMatches.filter(m => m.intHomeScore != null && m.intHomeScore !== '').length;
+
+  const all = [
+    { name: myName + ' (나)', preds: wcPreds },
+    ...wcFriends.map(f => ({ name: f.name, preds: f.preds }))
+  ];
+
+  const ranked = all.map(p => {
+    const { pts, count } = wcTotalPts(p.preds);
+    return { name: p.name, pts, count, predicted: Object.keys(p.preds).length };
+  }).sort((a, b) => b.pts - a.pts || b.predicted - a.predicted);
+
+  if (completedCount === 0) {
+    el.innerHTML = '<p style="text-align:center;color:#aaa;padding:20px">경기가 종료되면 점수가 자동으로 계산됩니다</p>';
+    return;
+  }
+
+  const rankClass = i => ['gold', 'silver', 'bronze'][i] || '';
+  const medal     = i => ['🥇', '🥈', '🥉'][i] || '';
+
+  el.innerHTML = ranked.map((p, i) => `
+    <div class="lb-row">
+      <div class="lb-rank ${rankClass(i)}">${i + 1}</div>
+      <div style="flex:1">
+        <div style="font-weight:600">${p.name} ${medal(i)}</div>
+        <div style="font-size:.8em;color:#aaa">${p.count}/${completedCount}경기 채점 완료 · 예측 ${p.predicted}경기</div>
+      </div>
+      <div class="lb-pts">${p.pts}점</div>
+    </div>`).join('');
+}
 </script>
 </body>
 </html>
