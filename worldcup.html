@@ -131,19 +131,15 @@
       <span>⚽ 경기 스코어 내기</span>
       <span id="live-badge" class="live-badge"><span class="live-dot"></span>자동 업데이트 중</span>
     </div>
-    <p style="font-size:.8rem;color:#888;margin-bottom:12px">원하는 라운드/팀을 선택해 내기를 입력하세요 · AI 예측이 참고용으로 표시됩니다</p>
+    <p style="font-size:.8rem;color:#888;margin-bottom:12px">다가올 경기를 선택해 내기를 입력하세요 · AI 예측이 참고용으로 표시됩니다</p>
 
     <!-- Filter bar -->
     <div class="filter-bar">
-      <div class="fgrp">
-        <label>🔽 라운드 선택</label>
-        <select id="round-filter" class="fsel" onchange="applyFilter()">
-          <option value="all">전체 경기</option>
+      <div class="fgrp" style="flex:2;min-width:200px">
+        <label>📅 경기 선택</label>
+        <select id="match-filter" class="fsel" onchange="applyFilter()">
+          <option value="upcoming">다가올 경기 전체</option>
         </select>
-      </div>
-      <div class="fgrp">
-        <label>🔍 팀 검색</label>
-        <input id="team-filter" class="finp" type="text" placeholder="예) Korea, Mexico ..." oninput="applyFilter()" />
       </div>
       <div style="display:flex;align-items:flex-end;gap:8px">
         <span id="match-count" style="font-size:.76rem;color:#bbb;white-space:nowrap;padding-bottom:8px"></span>
@@ -186,8 +182,7 @@ let participants = JSON.parse(localStorage.getItem(PARTS_KEY) || '[]');
 let picks        = JSON.parse(localStorage.getItem(PICKS_KEY) || '{}');
 const aiCache    = {};
 const teamCache  = {};
-let filterRound  = 'all';
-let filterTeam   = '';
+let filterRound  = 'upcoming';
 let autoTimer    = null;
 let wcLeagueId   = null;
 
@@ -386,48 +381,51 @@ async function loadMatches() {
 }
 
 /* ===== FILTER ===== */
+function isUpcoming(m) {
+  if (actualResult(m)) return false;             // 결과 있으면 지난 경기
+  if (!m.dateEvent) return true;
+  const d = new Date(`${m.dateEvent}T${m.strTime||'00:00:00'}`);
+  return d >= new Date(Date.now() - 2 * 60 * 60 * 1000); // 2시간 전까지는 "다가올" 취급
+}
+
 function populateRoundFilter() {
-  const sel = document.getElementById('round-filter');
+  const sel = document.getElementById('match-filter');
   if (!sel) return;
-  const seen = new Set();
-  const rounds = [];
-  wMatches.forEach(m => {
-    const r = m.strRound || `라운드 ${m.intRound || '?'}`;
-    if (!seen.has(r)) { seen.add(r); rounds.push(r); }
-  });
-  sel.innerHTML = `<option value="all">전체 경기 (${wMatches.length}경기)</option>` +
-    rounds.map(r => {
-      const cnt = wMatches.filter(m => (m.strRound || `라운드 ${m.intRound||'?'}`) === r).length;
-      return `<option value="${r}">${r} (${cnt}경기)</option>`;
+  const upcoming = wMatches.filter(isUpcoming);
+  const upcomingCount = upcoming.length;
+
+  // 현재 선택값 기억
+  const prev = sel.value;
+
+  sel.innerHTML = `<option value="upcoming">다가올 경기 전체 (${upcomingCount}경기)</option>` +
+    upcoming.map(m => {
+      const date = m.dateEvent ? m.dateEvent.slice(5).replace('-', '/') : '';
+      const time = m.strTime ? m.strTime.slice(0,5) : '';
+      const label = `${flag(m.strHomeTeam)}${m.strHomeTeam} vs ${flag(m.strAwayTeam)}${m.strAwayTeam}${date ? ' · '+date : ''}${time ? ' '+time : ''}`;
+      return `<option value="${m.idEvent}">${label}</option>`;
     }).join('');
-  // Restore previous selection if still valid
-  if (filterRound !== 'all' && rounds.includes(filterRound)) sel.value = filterRound;
+
+  // 이전 선택 복원
+  if (prev && prev !== 'upcoming' && [...sel.options].some(o => o.value === prev)) sel.value = prev;
   updateMatchCount();
 }
 
 function applyFilter() {
-  filterRound = document.getElementById('round-filter')?.value || 'all';
-  filterTeam  = (document.getElementById('team-filter')?.value || '').toLowerCase().trim();
+  filterRound = document.getElementById('match-filter')?.value || 'upcoming';
   renderMatchList(document.getElementById('matches-list'));
   updateMatchCount();
 }
 
 function getFilteredMatches() {
-  return wMatches.filter(m => {
-    const r = m.strRound || `라운드 ${m.intRound||'?'}`;
-    const okR = filterRound === 'all' || r === filterRound;
-    const okT = !filterTeam ||
-      (m.strHomeTeam||'').toLowerCase().includes(filterTeam) ||
-      (m.strAwayTeam||'').toLowerCase().includes(filterTeam);
-    return okR && okT;
-  });
+  if (filterRound === 'upcoming') return wMatches.filter(isUpcoming);
+  return wMatches.filter(m => m.idEvent === filterRound);
 }
 
 function updateMatchCount() {
   const el = document.getElementById('match-count');
   if (!el) return;
   const n = getFilteredMatches().length;
-  el.textContent = n === wMatches.length ? `총 ${n}경기` : `${n} / ${wMatches.length}경기`;
+  el.textContent = filterRound === 'upcoming' ? `${n}경기` : '1경기';
 }
 
 /* ===== RELOAD ===== */
@@ -435,12 +433,9 @@ async function reloadMatches() {
   if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
   wMatches = [];
   Object.keys(aiCache).forEach(k => delete aiCache[k]);
-  filterRound = 'all';
-  filterTeam  = '';
-  const sel = document.getElementById('round-filter');
-  if (sel) sel.value = 'all';
-  const ti = document.getElementById('team-filter');
-  if (ti) ti.value = '';
+  filterRound = 'upcoming';
+  const sel = document.getElementById('match-filter');
+  if (sel) sel.value = 'upcoming';
   await loadMatches();
 }
 
