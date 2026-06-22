@@ -27,7 +27,7 @@
     .share-btn img{width:28px;height:28px;}
     #error{color:var(--red);text-align:center;margin-top:6px;}
     canvas{max-width:100%;}
-    @media(max-width:700px){.container{padding:0 2vw;}}
+    @media (max-width:700px){.container{padding:0 2vw;}}
   </style>
 </head>
 <body>
@@ -80,10 +80,13 @@
     <div id="error"></div>
   </div>
 <script>
-const KAKAO_APP_KEY = '13aaec94bd811a32bbb688c8b1a37ba2';
+const KAKAO_APP_KEY = '13aaec94bd811a32bbb688c8b1a37ba2'; // 본인 앱키로 변경 가능
 
+// 카카오 SDK 준비 (defer 대응)
 function kakaoInitIfNeeded() {
-  if (window.Kakao && !window.Kakao.isInitialized()) Kakao.init(KAKAO_APP_KEY);
+  if (window.Kakao && !window.Kakao.isInitialized()) {
+    Kakao.init(KAKAO_APP_KEY);
+  }
 }
 if (document.readyState === 'complete') kakaoInitIfNeeded();
 else window.addEventListener('DOMContentLoaded', kakaoInitIfNeeded);
@@ -98,7 +101,7 @@ async function fetchJSON(u){
     try{
       const r=await Promise.race([
         fetch(p(u)).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}),
-        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),7000))
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),8000))
       ]);
       if(r)return r;
     }catch{}
@@ -115,54 +118,40 @@ function renderSetWithScore(el, arrs, freqMap) {
 }
 function renderSet(el,arrs){el.innerHTML=arrs.map(a=>`<div class="set">${a.map(ball).join('')}</div>`).join('');}
 function pick(pool){const s=pool.slice(),o=[];while(o.length<6&&s.length)o.push(s.splice(Math.random()*s.length|0,1)[0]);return o.sort((a,b)=>a-b);}
-
-async function loadLocalData(){
-  try{
-    const r=await fetch('./data/lotto.json');
-    if(!r.ok)return null;
-    const d=await r.json();
-    if(d.draws&&d.draws.length>0)return d;
-  }catch{}
-  return null;
+async function latestNo(){
+  const w=Math.floor((Date.now()-Date.UTC(2002,11,7))/6048e5)+5;
+  for(let n=w;n>w-60;n--){
+    const d=await fetchJSON(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${n}`);
+    if(d&&d.returnValue==='success')return n;
+  }
+  throw'최신 회차 실패';
 }
-
 let chart;
 async function generate(){
   const err=document.getElementById('error');err.textContent='';
-  const bar=document.querySelector('.progress-bar-inner');bar.style.width='10%';
+  const bar=document.querySelector('.progress-bar-inner');bar.style.width='0%';
   try{
-    // 로컬 JSON 우선 사용 (CORS 없음) — 없으면 프록시로 직접 호출
-    const local=await loadLocalData();
-    let draws;
-    if(local){
-      draws=local.draws;
-      bar.style.width='80%';
-      const upd=local.updated?new Date(local.updated).toLocaleDateString('ko-KR'):'';
-      document.getElementById('last-info').textContent=`최근 회차 ${draws[0].drwNo} 번호${upd?' ('+upd+' 갱신)':''}`;
-    } else {
-      // 폴백: 프록시로 직접 호출
-      const w=Math.floor((Date.now()-Date.UTC(2002,11,7))/6048e5)+5;
-      let latest=null;
-      for(let n=w;n>w-60;n--){
-        const d=await fetchJSON(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${n}`);
-        if(d&&d.returnValue==='success'){latest=n;break;}
+    const latest=await latestNo();
+    const res=await Promise.allSettled([...Array(100).keys()].map(i=>latest-i).map(n=>fetchJSON(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${n}`)));
+    const freq={},tot=res.length;
+    res.forEach((r,i)=>{
+      if(r.status==='fulfilled'&&r.value&&r.value.returnValue==='success'){
+        for(let k=1;k<=6;k++){
+          const n=r.value[`drwtNo${k}`];
+          freq[n]=(freq[n]||0)+1;
+        }
       }
-      if(!latest)throw'데이터를 불러올 수 없습니다. 잠시 후 다시 시도해 주세요.';
-      const res=await Promise.allSettled([...Array(100).keys()].map(i=>latest-i).map(n=>fetchJSON(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${n}`)));
-      draws=res.filter(r=>r.status==='fulfilled'&&r.value?.returnValue==='success').map(r=>r.value);
-      bar.style.width='80%';
-      document.getElementById('last-info').textContent=`최근 회차 ${latest} 번호`;
-    }
-    document.getElementById('last-numbers').innerHTML=[...Array(6)].map((_,i)=>ball(draws[0][`drwtNo${i+1}`])).join('');
-    const freq={};
-    draws.forEach(d=>{for(let k=1;k<=6;k++){const n=d[`drwtNo${k}`];freq[n]=(freq[n]||0)+1;}});
-    bar.style.width='100%';
+      bar.style.width=`${((i+1)/tot*100).toFixed(0)}%`;
+    });
+    const latestData=res[0].status==='fulfilled'?res[0].value:null;
+    document.getElementById('last-info').textContent=`최근 회차 ${latest} 번호`;
+    document.getElementById('last-numbers').innerHTML=latestData?[...Array(6)].map((_,i)=>ball(latestData[`drwtNo${i+1}`])).join(''):'조회 실패';
     const sorted=Object.entries(freq).sort((a,b)=>b[1]-a[1]);
     const pool=sorted.slice(0,100).map(([n])=>+n);
     const recSets=Array.from({length:3},()=>pick(pool));
     const rndSets=Array.from({length:2},()=>pick([...Array(45)].map((_,i)=>i+1)));
-    renderSetWithScore(document.getElementById('recommended'),recSets,freq);
-    renderSetWithScore(document.getElementById('random'),rndSets,freq);
+    renderSetWithScore(document.getElementById('recommended'),recSets, freq);
+    renderSetWithScore(document.getElementById('random'),rndSets, freq);
     const top6=sorted.slice(0,6).map(([n])=>+n).sort((a,b)=>a-b);
     renderSet(document.getElementById('top-six'),[top6]);
     if(chart&&typeof chart.destroy==='function')chart.destroy();
@@ -171,21 +160,27 @@ async function generate(){
     window.shareText=`${url}\n[추천]\n${recSets.map(s=>s.join(', ')).join('\n')}\n[일반]\n${rndSets.map(s=>s.join(', ')).join('\n')}`;
   }catch(e){console.error(e);err.textContent=e;}
 }
+// 캡처 PNG 저장
 document.getElementById('btn-shot').onclick=()=>html2canvas(document.body).then(c=>{const a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='lotto.png';a.click();});
-const openWin=u=>window.open(u,'_blank');
+// 트위터 공유
+const openWin=(u)=>window.open(u,'_blank');
 document.getElementById('share-twitter').onclick=()=>openWin(`https://twitter.com/intent/tweet?text=${encodeURIComponent(window.shareText)}`);
+// 링크 복사
 document.getElementById('share-copy').onclick=async()=>{await navigator.clipboard.writeText(window.shareText);alert('복사되었습니다!');};
+// 카카오톡 PC/웹 공유 (이미지 없이)
 document.getElementById('share-kakao').onclick=()=>{
   kakaoInitIfNeeded();
-  if(!window.Kakao?.isInitialized())return alert('카카오 SDK 미초기화');
+  if(!window.Kakao?.isInitialized()) return alert('카카오 SDK 미초기화');
   window.Kakao.Share.sendDefault({
     objectType:'feed',
     content:{
       title:'로또 번호 생성기 - AI 추천',
-      description:window.shareText.replace(/^https?:\/\/\S+\n?/,'').slice(0,100),
-      link:{mobileWebUrl:location.href,webUrl:location.href}
+      description: window.shareText.replace(/^https?:\/\/\S+\n?/,'').slice(0,100),
+      link:{ mobileWebUrl:location.href, webUrl: location.href }
     },
-    buttons:[{title:'웹에서 보기',link:{mobileWebUrl:location.href,webUrl:location.href}}]
+    buttons: [
+      { title: '웹에서 보기', link: { mobileWebUrl: location.href, webUrl: location.href } }
+    ]
   });
 };
 document.addEventListener('DOMContentLoaded',generate);
