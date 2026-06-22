@@ -336,7 +336,7 @@ function matchCardHTML(m) {
 
   // AI hint
   let aiHintHTML = `<div class="ai-hint" id="ai-hint-${m.idEvent}" style="color:#ccc">🤖 AI 분석 중...</div>`;
-  if (ai) aiHintHTML = buildAiHintHTML(m.idEvent, ai);
+  if (ai) aiHintHTML = buildAiHintHTML(m.idEvent, ai, m.strHomeTeam, m.strAwayTeam);
 
   // Bet rows for each participant
   let betRowsHTML = '';
@@ -419,8 +419,8 @@ function matchCardHTML(m) {
       </div>
       <div class="prob-bar" id="prob-${m.idEvent}">
         ${ai
-          ? `<div class="ph" style="width:${ai.hw}%">홈팀 승 ${ai.hw}%</div><div class="pd" style="width:${ai.dw}%">무승부 ${ai.dw}%</div><div class="pa" style="width:${ai.aw}%">원정팀 승 ${ai.aw}%</div>`
-          : `<div class="ph" style="width:40%">홈팀 승</div><div class="pd" style="width:20%">무승부</div><div class="pa" style="width:40%">원정팀 승</div>`}
+          ? `<div class="ph" style="width:${ai.hw}%">${m.strHomeTeam.split(' ')[0]} ${ai.hw}%</div><div class="pd" style="width:${ai.dw}%">무승부 ${ai.dw}%</div><div class="pa" style="width:${ai.aw}%">${m.strAwayTeam.split(' ')[0]} ${ai.aw}%</div>`
+          : `<div class="ph" style="width:40%">${m.strHomeTeam.split(' ')[0]}</div><div class="pd" style="width:20%">무승부</div><div class="pa" style="width:40%">${m.strAwayTeam.split(' ')[0]}</div>`}
       </div>
     </div>
     <div class="bet-panel">
@@ -430,13 +430,15 @@ function matchCardHTML(m) {
   </div>`;
 }
 
-function buildAiHintHTML(matchId, ai) {
+function buildAiHintHTML(matchId, ai, homeTeam, awayTeam) {
   const top3 = ai.top3.map(s=>`${s.h}:${s.a}`).join(' / ');
+  const hn = (homeTeam||'').split(' ')[0] || '홈';
+  const an = (awayTeam||'').split(' ')[0] || '원정';
   return `<div class="ai-hint" id="ai-hint-${matchId}">
     🤖 AI 예측 스코어: <strong>${ai.best.h}:${ai.best.a}</strong> &nbsp;|&nbsp;
-    홈팀 승 <strong style="color:#3498db">${ai.hw}%</strong> ·
+    ${hn} <strong style="color:#3498db">${ai.hw}%</strong> ·
     무승부 <strong style="color:#95a5a6">${ai.dw}%</strong> ·
-    원정팀 승 <strong style="color:#e74c3c">${ai.aw}%</strong>
+    ${an} <strong style="color:#e74c3c">${ai.aw}%</strong>
     <span style="font-size:.7rem;color:#bbb">(상위3: ${top3})</span>
   </div>`;
 }
@@ -594,13 +596,15 @@ async function startAIProgress() {
       if (aiEl) aiEl.innerHTML = `<span class="ai-score">${pred.best.h}:${pred.best.a}</span>`;
       // Update prob bar
       const probEl = document.getElementById('prob-'+m.idEvent);
+      const hn = (m.strHomeTeam||'').split(' ')[0] || '홈';
+      const an = (m.strAwayTeam||'').split(' ')[0] || '원정';
       if (probEl) probEl.innerHTML = `
-        <div class="ph" style="width:${pred.hw}%">홈팀 승 ${pred.hw}%</div>
+        <div class="ph" style="width:${pred.hw}%">${hn} ${pred.hw}%</div>
         <div class="pd" style="width:${pred.dw}%">무승부 ${pred.dw}%</div>
-        <div class="pa" style="width:${pred.aw}%">원정팀 승 ${pred.aw}%</div>`;
+        <div class="pa" style="width:${pred.aw}%">${an} ${pred.aw}%</div>`;
       // Update AI hint in bet panel
       const hintEl = document.getElementById('ai-hint-'+m.idEvent);
-      if (hintEl) hintEl.outerHTML = buildAiHintHTML(m.idEvent, pred);
+      if (hintEl) hintEl.outerHTML = buildAiHintHTML(m.idEvent, pred, m.strHomeTeam, m.strAwayTeam);
     } catch {}
     await new Promise(r => setTimeout(r, 120));
   }
