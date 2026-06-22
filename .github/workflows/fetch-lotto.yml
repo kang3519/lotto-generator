@@ -1,0 +1,54 @@
+name: Fetch Lotto Data
+
+on:
+  schedule:
+    - cron: '0 16 * * 6'  # 매주 토요일 16:00 UTC (= 일요일 01:00 KST, 추첨 후)
+  workflow_dispatch:       # 수동 실행 허용
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch latest 100 draws from DH Lottery
+        run: |
+          mkdir -p data
+          python3 - <<'EOF'
+          import requests, json, math
+          from datetime import datetime, timezone
+
+          epoch_ms = datetime(2002, 12, 7, tzinfo=timezone.utc).timestamp() * 1000
+          now_ms   = datetime.now(timezone.utc).timestamp() * 1000
+          latest_est = int(math.floor((now_ms - epoch_ms) / 604800000)) + 5
+
+          draws = []
+          for n in range(latest_est, max(latest_est - 110, 1), -1):
+              try:
+                  r = requests.get(
+                      f'https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo={n}',
+                      timeout=10, headers={'User-Agent': 'Mozilla/5.0'}
+                  )
+                  data = r.json()
+                  if data.get('returnValue') == 'success':
+                      draws.append(data)
+                      if len(draws) >= 100:
+                          break
+              except Exception as e:
+                  print(f'  skip {n}: {e}')
+
+          out = {'updated': datetime.now(timezone.utc).isoformat(), 'draws': draws}
+          with open('data/lotto.json', 'w', encoding='utf-8') as f:
+              json.dump(out, f, ensure_ascii=False)
+          print(f'Saved {len(draws)} draws (latest={draws[0]["drwNo"] if draws else "?"})')
+          EOF
+
+      - name: Commit and push
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/lotto.json
+          git diff --staged --quiet || git commit -m "Auto-update lotto data $(date +%Y-%m-%d)"
+          git push
