@@ -13,7 +13,7 @@
     nav h1{flex:1;font-size:1rem;font-weight:700}
     .container{max-width:800px;margin:0 auto;padding:20px 14px;display:flex;flex-direction:column;gap:16px}
     .card{background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.07);padding:18px}
-    .card-title{font-size:1.05rem;font-weight:700;color:#222;margin-bottom:12px}
+    .card-title{font-size:1.05rem;font-weight:700;color:#222;margin-bottom:12px;display:flex;align-items:center;flex-wrap:wrap;gap:8px}
     .btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:8px 16px;background:var(--primary);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:.88rem;font-weight:600;transition:filter .15s}
     .btn:hover{filter:brightness(.9)}
     .btn.red{background:var(--red)}
@@ -22,10 +22,21 @@
     input[type=text],input[type=number]{padding:8px 10px;border:1.5px solid #ddd;border-radius:7px;font-size:.9rem;background:#fafafa}
     input:focus{border-color:var(--primary);outline:none;background:#fff}
 
+    /* Filter bar */
+    .filter-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;padding:0 0 14px;border-bottom:1px solid #f0f4f8;margin-bottom:14px}
+    .fgrp{flex:1;min-width:140px}
+    .fgrp label{font-size:.74rem;color:#888;display:block;margin-bottom:4px;font-weight:600}
+    .fsel,.finp{width:100%;padding:7px 10px;border:1.5px solid #ddd;border-radius:7px;font-size:.85rem;background:#fafafa}
+    .fsel{cursor:pointer}
+    .fsel:focus,.finp:focus{border-color:var(--primary);outline:none;background:#fff}
+
+    /* Live badge */
+    .live-badge{display:none;align-items:center;gap:4px;font-size:.7rem;color:#27ae60;font-weight:700;margin-left:auto;white-space:nowrap}
+    .live-dot{width:6px;height:6px;border-radius:50%;background:#27ae60;animation:blink 2s ease infinite;flex-shrink:0}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+
     .round-hdr{background:linear-gradient(90deg,#1a3a5c,#2980b9);color:#fff;border-radius:7px;padding:7px 12px;font-weight:700;font-size:.8rem;margin:14px 0 6px;letter-spacing:.4px}
     .match-card{border:1px solid #e4eaf2;border-radius:10px;margin:6px 0;overflow:hidden}
-
-    /* Match top section */
     .match-top{padding:12px 14px;background:#fff}
     .match-row{display:flex;align-items:center;gap:8px}
     .team{flex:1;font-weight:700;font-size:.88rem}
@@ -38,13 +49,9 @@
     .ph{background:#3498db;color:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;transition:width .4s;min-width:0}
     .pd{background:#95a5a6;color:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;transition:width .4s;min-width:0}
     .pa{background:#e74c3c;color:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;transition:width .4s;min-width:0}
-
-    /* Bet panel — always visible */
     .bet-panel{border-top:1px solid #eef2f7;background:#f8faff;padding:10px 14px}
     .ai-hint{font-size:.78rem;color:#666;margin-bottom:10px;background:#fff;border:1px solid #e4eaf2;border-radius:7px;padding:7px 10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
     .ai-hint strong{color:#8e54e9}
-
-    /* Inline bet rows */
     .bet-rows{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
     .bet-row{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e8eef6;border-radius:8px;padding:7px 10px}
     .bet-pname{flex:1;font-weight:700;font-size:.82rem;min-width:60px}
@@ -64,12 +71,8 @@
     .pot-info{font-size:.75rem;color:#999}
     .pot-info strong{color:#555}
     .winner-box{background:#f0fff4;border-radius:7px;padding:7px 10px;font-size:.8rem;color:#1e8449;margin-top:4px}
-
-    /* Participants */
     .p-row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid #f0f0f0}
     .p-row:last-child{border-bottom:none}
-
-    /* Settlement */
     .lb-row{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid #f5f5f5}
     .lb-row:last-child{border-bottom:none}
     .rnum{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;color:#fff;flex-shrink:0;background:#bbb}
@@ -78,6 +81,17 @@
     .txn:last-child{border-bottom:none}
     .txn-arrow{color:var(--red);font-weight:800}
     .txn-amt{margin-left:auto;font-weight:700;color:var(--green)}
+
+    /* Group standings */
+    .stg-wrap{overflow-x:auto;margin-bottom:14px}
+    .stg-tbl{width:100%;border-collapse:collapse;font-size:.78rem;min-width:360px}
+    .stg-tbl th{background:#f0f4f8;padding:6px 8px;text-align:center;font-weight:700;color:#555;white-space:nowrap}
+    .stg-tbl td{padding:6px 8px;text-align:center;border-bottom:1px solid #f5f5f5}
+    .stg-tbl tr:last-child td{border-bottom:none}
+    .stg-tbl td:first-child,.stg-tbl th:first-child{text-align:left;white-space:nowrap}
+    .stg-ghdr{font-weight:700;color:#1a3a5c;margin:14px 0 5px;font-size:.85rem}
+    .stg-ghdr:first-child{margin-top:0}
+    .adv-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle;flex-shrink:0}
 
     @media(max-width:500px){.team{font-size:.76rem}.mid{min-width:90px}.s-inp{width:34px;height:30px}.bet-pname{font-size:.76rem}}
   </style>
@@ -113,14 +127,43 @@
 
   <!-- ② 경기 & 내기 -->
   <div class="card">
-    <div class="card-title">⚽ 경기 스코어 내기</div>
-    <p style="font-size:.8rem;color:#888;margin-bottom:12px">각 경기마다 예측 스코어를 바로 입력하고 저장하세요 · AI 예측이 참고용으로 표시됩니다</p>
+    <div class="card-title">
+      <span>⚽ 경기 스코어 내기</span>
+      <span id="live-badge" class="live-badge"><span class="live-dot"></span>자동 업데이트 중</span>
+    </div>
+    <p style="font-size:.8rem;color:#888;margin-bottom:12px">원하는 라운드/팀을 선택해 내기를 입력하세요 · AI 예측이 참고용으로 표시됩니다</p>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <div class="fgrp">
+        <label>🔽 라운드 선택</label>
+        <select id="round-filter" class="fsel" onchange="applyFilter()">
+          <option value="all">전체 경기</option>
+        </select>
+      </div>
+      <div class="fgrp">
+        <label>🔍 팀 검색</label>
+        <input id="team-filter" class="finp" type="text" placeholder="예) Korea, Mexico ..." oninput="applyFilter()" />
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:8px">
+        <span id="match-count" style="font-size:.76rem;color:#bbb;white-space:nowrap;padding-bottom:8px"></span>
+        <button class="btn sm" onclick="reloadMatches()" title="최신 데이터 다시 불러오기" style="margin-bottom:1px">🔄</button>
+      </div>
+    </div>
+
     <div id="matches-list">
       <div style="text-align:center;padding:40px;color:#bbb">⏳ 2026 월드컵 경기 데이터 로딩 중...</div>
     </div>
   </div>
 
-  <!-- ③ 종합 정산 -->
+  <!-- ③ 그룹 순위 -->
+  <div class="card" id="standings-card" style="display:none">
+    <div class="card-title">📊 그룹 순위 현황</div>
+    <p style="font-size:.8rem;color:#888;margin-bottom:10px">완료된 경기 기준 자동 계산 · 조 1·2위(녹색)는 다음 라운드 진출 예상 · 결과 확정 시 자동 반영</p>
+    <div id="standings-content"></div>
+  </div>
+
+  <!-- ④ 종합 정산 -->
   <div class="card">
     <div class="card-title">🏆 종합 순위 &amp; 정산</div>
     <p style="font-size:.8rem;color:#888;margin-bottom:12px">
@@ -142,6 +185,10 @@ let wMatches     = [];
 let participants = JSON.parse(localStorage.getItem(PARTS_KEY) || '[]');
 let picks        = JSON.parse(localStorage.getItem(PICKS_KEY) || '{}');
 const aiCache    = {};
+let filterRound  = 'all';
+let filterTeam   = '';
+let autoTimer    = null;
+let wcLeagueId   = null;
 
 /* ===== FLAGS ===== */
 const F = {
@@ -154,7 +201,7 @@ const F = {
   'Colombia':'🇨🇴','Chile':'🇨🇱','Peru':'🇵🇪','Tunisia':'🇹🇳','Algeria':'🇩🇿',
   'Qatar':'🇶🇦','Costa Rica':'🇨🇷','Panama':'🇵🇦','Jamaica':'🇯🇲','Indonesia':'🇮🇩',
   'Venezuela':'🇻🇪','Bolivia':'🇧🇴','New Zealand':'🇳🇿','Kenya':'🇰🇪',
-  'Morocco':'🇲🇦','Wales':'🏴󠁧󠁢󠁷󠁬󠁳󠁿','Scotland':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','Ukraine':'🇺🇦','Turkey':'🇹🇷',
+  'Wales':'🏴󠁧󠁢󠁷󠁬󠁳󠁿','Scotland':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','Ukraine':'🇺🇦','Turkey':'🇹🇷',
   'South Africa':'🇿🇦','Egypt':'🇪🇬','Ivory Coast':'🇨🇮',"Cote d'Ivoire":'🇨🇮',
   'Mali':'🇲🇱','Congo DR':'🇨🇩','Zambia':'🇿🇲','Tanzania':'🇹🇿','Benin':'🇧🇯',
   'Honduras':'🇭🇳','El Salvador':'🇸🇻','Trinidad':'🇹🇹','Trinidad and Tobago':'🇹🇹',
@@ -221,17 +268,13 @@ async function aiPredict(matchId, home, away) {
 
 /* ===== FIND FIFA WORLD CUP LEAGUE ===== */
 async function findWCLeagueId() {
-  // Try known candidate IDs for FIFA World Cup
   const candidates = [4429, 4514, 4501, 4480];
   for (const id of candidates) {
     const r = await fetch(`https://www.thesportsdb.com/api/v1/json/3/lookupleague.php?id=${id}`)
       .then(r => r.json()).catch(() => null);
     const name = r?.leagues?.[0]?.strLeague || '';
-    if (name.toLowerCase().includes('world cup') && !name.toLowerCase().includes('women')) {
-      return id;
-    }
+    if (name.toLowerCase().includes('world cup') && !name.toLowerCase().includes('women')) return id;
   }
-  // Fall back to search by country
   const search = await fetch('https://www.thesportsdb.com/api/v1/json/3/searchleagues.php?c=International&s=Soccer')
     .then(r => r.json()).catch(() => null);
   const wc = (search?.leagues || []).find(l =>
@@ -240,52 +283,213 @@ async function findWCLeagueId() {
   return wc ? +wc.idLeague : null;
 }
 
+/* ===== FETCH ALL MATCHES ===== */
+async function fetchAllMatches(leagueId) {
+  const [season, past, nxt] = await Promise.all([
+    fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsseason.php?id=${leagueId}&s=2026`).then(r=>r.json()).catch(()=>null),
+    fetch(`https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=${leagueId}`).then(r=>r.json()).catch(()=>null),
+    fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsnextleague.php?id=${leagueId}`).then(r=>r.json()).catch(()=>null),
+  ]);
+  const allMap = new Map();
+  [...(season?.events||[]), ...(past?.events||[]), ...(nxt?.events||[])].forEach(e => {
+    if (e.dateEvent?.startsWith('2026')) allMap.set(e.idEvent, e);
+  });
+  return [...allMap.values()].sort((a,b) =>
+    new Date(a.dateEvent+'T'+(a.strTime||'00:00')) - new Date(b.dateEvent+'T'+(b.strTime||'00:00'))
+  );
+}
+
 /* ===== LOAD MATCHES ===== */
 async function loadMatches() {
   const container = document.getElementById('matches-list');
   container.innerHTML = `<div style="text-align:center;padding:20px;color:#bbb">⏳ FIFA 월드컵 리그 확인 중...</div>`;
   try {
-    const leagueId = await findWCLeagueId();
-    if (!leagueId) {
+    if (!wcLeagueId) wcLeagueId = await findWCLeagueId();
+    if (!wcLeagueId) {
       container.innerHTML = `<div style="text-align:center;padding:40px;color:#aaa"><div style="font-size:2em">⚽</div><div style="font-weight:700;margin-top:8px">월드컵 리그를 찾지 못했습니다</div></div>`;
       return;
     }
-
     container.innerHTML = `<div style="text-align:center;padding:20px;color:#bbb">⏳ 경기 일정 로딩 중...</div>`;
-
-    // Load season + past + upcoming all at once for maximum coverage
-    const [season, past, nxt] = await Promise.all([
-      fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsseason.php?id=${leagueId}&s=2026`).then(r=>r.json()).catch(()=>null),
-      fetch(`https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=${leagueId}`).then(r=>r.json()).catch(()=>null),
-      fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsnextleague.php?id=${leagueId}`).then(r=>r.json()).catch(()=>null),
-    ]);
-
-    // Merge all, deduplicate by idEvent, 2026 only
-    const allMap = new Map();
-    [...(season?.events||[]), ...(past?.events||[]), ...(nxt?.events||[])].forEach(e => {
-      if (e.dateEvent?.startsWith('2026')) allMap.set(e.idEvent, e);
-    });
-
-    wMatches = [...allMap.values()].sort((a,b) =>
-      new Date(a.dateEvent+'T'+(a.strTime||'00:00')) - new Date(b.dateEvent+'T'+(b.strTime||'00:00'))
-    );
+    wMatches = await fetchAllMatches(wcLeagueId);
 
     if (!wMatches.length) {
       container.innerHTML = `<div style="text-align:center;padding:40px;color:#aaa">
         <div style="font-size:2.5em">⚽</div>
         <div style="font-weight:700;margin-top:8px">2026 FIFA 월드컵 데이터 없음</div>
-        <div style="font-size:.8em;color:#bbb;margin-top:4px">TheSportsDB에 2026 월드컵 데이터가 아직 없습니다</div>
-        <div style="font-size:.75em;color:#ccc;margin-top:2px">리그 ID: ${leagueId}</div>
+        <div style="font-size:.8em;color:#bbb;margin-top:4px">TheSportsDB에 데이터가 아직 없습니다 (리그 ID: ${wcLeagueId})</div>
       </div>`;
       return;
     }
 
+    populateRoundFilter();
     renderMatchList(container);
+    renderGroupStandings();
     startAIProgress();
     updateSettlement();
+    startAutoRefresh();
   } catch(e) {
     container.innerHTML = `<div style="text-align:center;color:var(--red);padding:24px">오류: ${e.message}</div>`;
   }
+}
+
+/* ===== FILTER ===== */
+function populateRoundFilter() {
+  const sel = document.getElementById('round-filter');
+  if (!sel) return;
+  const seen = new Set();
+  const rounds = [];
+  wMatches.forEach(m => {
+    const r = m.strRound || `라운드 ${m.intRound || '?'}`;
+    if (!seen.has(r)) { seen.add(r); rounds.push(r); }
+  });
+  sel.innerHTML = `<option value="all">전체 경기 (${wMatches.length}경기)</option>` +
+    rounds.map(r => {
+      const cnt = wMatches.filter(m => (m.strRound || `라운드 ${m.intRound||'?'}`) === r).length;
+      return `<option value="${r}">${r} (${cnt}경기)</option>`;
+    }).join('');
+  // Restore previous selection if still valid
+  if (filterRound !== 'all' && rounds.includes(filterRound)) sel.value = filterRound;
+  updateMatchCount();
+}
+
+function applyFilter() {
+  filterRound = document.getElementById('round-filter')?.value || 'all';
+  filterTeam  = (document.getElementById('team-filter')?.value || '').toLowerCase().trim();
+  renderMatchList(document.getElementById('matches-list'));
+  updateMatchCount();
+}
+
+function getFilteredMatches() {
+  return wMatches.filter(m => {
+    const r = m.strRound || `라운드 ${m.intRound||'?'}`;
+    const okR = filterRound === 'all' || r === filterRound;
+    const okT = !filterTeam ||
+      (m.strHomeTeam||'').toLowerCase().includes(filterTeam) ||
+      (m.strAwayTeam||'').toLowerCase().includes(filterTeam);
+    return okR && okT;
+  });
+}
+
+function updateMatchCount() {
+  const el = document.getElementById('match-count');
+  if (!el) return;
+  const n = getFilteredMatches().length;
+  el.textContent = n === wMatches.length ? `총 ${n}경기` : `${n} / ${wMatches.length}경기`;
+}
+
+/* ===== RELOAD ===== */
+async function reloadMatches() {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+  wMatches = [];
+  Object.keys(aiCache).forEach(k => delete aiCache[k]);
+  filterRound = 'all';
+  filterTeam  = '';
+  const sel = document.getElementById('round-filter');
+  if (sel) sel.value = 'all';
+  const ti = document.getElementById('team-filter');
+  if (ti) ti.value = '';
+  await loadMatches();
+}
+
+/* ===== AUTO-REFRESH (5분마다 결과 반영) ===== */
+function startAutoRefresh() {
+  if (autoTimer) clearInterval(autoTimer);
+  const badge = document.getElementById('live-badge');
+  if (badge) badge.style.display = 'inline-flex';
+
+  autoTimer = setInterval(async () => {
+    try {
+      const prevCount = wMatches.filter(m => actualResult(m)).length;
+      const updated   = await fetchAllMatches(wcLeagueId);
+      const newCount  = updated.filter(m => actualResult(m)).length;
+
+      // 새 결과 or 새 경기 확정 시 전체 갱신
+      if (newCount !== prevCount || updated.length !== wMatches.length) {
+        wMatches = updated;
+        populateRoundFilter();
+        renderMatchList(document.getElementById('matches-list'));
+        renderGroupStandings();
+        updateSettlement();
+      }
+    } catch {}
+  }, 5 * 60 * 1000);
+}
+
+/* ===== GROUP STANDINGS ===== */
+function getMatchGroup(m) {
+  const texts = [m.strRound || '', m.strEvent || '', m.strFilename || ''];
+  for (const t of texts) {
+    const hit = t.match(/group\s+([a-l])/i) || t.match(/그룹\s*([A-L])/i);
+    if (hit) return `Group ${hit[1].toUpperCase()}`;
+  }
+  return null;
+}
+
+function calcGroupStandings() {
+  const groups = {};
+  wMatches.forEach(m => {
+    const g = getMatchGroup(m);
+    if (!g) return;
+    if (!groups[g]) groups[g] = {};
+    for (const t of [m.strHomeTeam, m.strAwayTeam]) {
+      if (t && !groups[g][t]) groups[g][t] = { name:t, p:0, w:0, d:0, l:0, gf:0, ga:0, pts:0 };
+    }
+    const res = actualResult(m);
+    if (!res) return;
+    const ht = groups[g][m.strHomeTeam], at = groups[g][m.strAwayTeam];
+    if (!ht || !at) return;
+    ht.p++; at.p++;
+    ht.gf += res.h; ht.ga += res.a;
+    at.gf += res.a; at.ga += res.h;
+    if (res.h > res.a)      { ht.w++; ht.pts += 3; at.l++; }
+    else if (res.h < res.a) { at.w++; at.pts += 3; ht.l++; }
+    else                    { ht.d++; ht.pts++;     at.d++; at.pts++; }
+  });
+  return groups;
+}
+
+function renderGroupStandings() {
+  const groups  = calcGroupStandings();
+  const card    = document.getElementById('standings-card');
+  const content = document.getElementById('standings-content');
+  if (!card || !content) return;
+  const keys = Object.keys(groups).sort();
+  if (!keys.length) { card.style.display = 'none'; return; }
+  card.style.display = '';
+
+  let html = '';
+  for (const g of keys) {
+    const teams = Object.values(groups[g]).sort((a, b) => {
+      if (b.pts !== a.pts) return b.pts - a.pts;
+      const dGD = (b.gf - b.ga) - (a.gf - a.ga);
+      if (dGD !== 0) return dGD;
+      return b.gf - a.gf;
+    });
+    html += `<div class="stg-ghdr">📌 ${g}</div>
+    <div class="stg-wrap"><table class="stg-tbl">
+      <thead><tr>
+        <th style="min-width:110px">팀</th><th>경</th><th>승</th><th>무</th><th>패</th>
+        <th>득</th><th>실</th><th>득실</th><th>점</th>
+      </tr></thead><tbody>`;
+    teams.forEach((t, i) => {
+      const gd = t.gf - t.ga;
+      const dotCls = i === 0 ? 'background:#27ae60' : i === 1 ? 'background:#52be80' : 'background:#ddd';
+      const rowBg  = i === 0 ? '#eafaf1' : i === 1 ? '#f0fff4' : '';
+      html += `<tr style="background:${rowBg}">
+        <td><span class="adv-dot" style="${dotCls}"></span>${flag(t.name)} ${t.name}</td>
+        <td>${t.p}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td>
+        <td>${t.gf}</td><td>${t.ga}</td>
+        <td style="color:${gd>0?'var(--green)':gd<0?'var(--red)':'#aaa'};font-weight:${gd!==0?'700':'400'}">${gd>0?'+':''}${gd}</td>
+        <td><strong>${t.pts}</strong></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+  html += `<div style="font-size:.72rem;color:#aaa;margin-top:2px;display:flex;gap:14px;flex-wrap:wrap">
+    <span><span class="adv-dot" style="background:#27ae60;display:inline-block;vertical-align:middle;margin-right:3px"></span>조 1위 진출 예상</span>
+    <span><span class="adv-dot" style="background:#52be80;display:inline-block;vertical-align:middle;margin-right:3px"></span>조 2위 진출 예상</span>
+  </div>`;
+  content.innerHTML = html;
 }
 
 /* ===== HELPERS ===== */
@@ -312,17 +516,23 @@ function matchWinners(m) {
 
 /* ===== RENDER MATCH LIST ===== */
 function renderMatchList(container) {
+  const ms = getFilteredMatches();
+  if (!ms.length && wMatches.length) {
+    container.innerHTML = `<div style="text-align:center;padding:28px;color:#bbb">
+      🔍 조건에 맞는 경기가 없습니다<br>
+      <small style="color:#ddd;font-size:.8rem">필터를 변경하거나 검색어를 지워보세요</small>
+    </div>`;
+    return;
+  }
   const rounds = {};
-  wMatches.forEach(m => {
+  ms.forEach(m => {
     const r = m.strRound || `라운드 ${m.intRound||'?'}`;
     (rounds[r] = rounds[r]||[]).push(m);
   });
   let html = '';
-  for (const [round, ms] of Object.entries(rounds)) {
+  for (const [round, matchList] of Object.entries(rounds)) {
     html += `<div class="round-hdr">📅 ${round}</div>`;
-    for (const m of ms) {
-      html += matchCardHTML(m);
-    }
+    for (const m of matchList) html += matchCardHTML(m);
   }
   container.innerHTML = html;
 }
@@ -334,11 +544,9 @@ function matchCardHTML(m) {
     : '';
   const ai = aiCache[m.idEvent];
 
-  // AI hint
   let aiHintHTML = `<div class="ai-hint" id="ai-hint-${m.idEvent}" style="color:#ccc">🤖 AI 분석 중...</div>`;
   if (ai) aiHintHTML = buildAiHintHTML(m.idEvent, ai, m.strHomeTeam, m.strAwayTeam);
 
-  // Bet rows for each participant
   let betRowsHTML = '';
   if (!participants.length) {
     betRowsHTML = '<p style="text-align:center;color:#bbb;font-size:.8rem;padding:6px">위에서 참가자를 먼저 추가하세요</p>';
@@ -394,7 +602,6 @@ function matchCardHTML(m) {
     });
     betRowsHTML += '</div>';
 
-    // Save row or winner box
     if (!done) {
       const potAll = participants.reduce((s,p) => s + p.bet, 0);
       betRowsHTML += `<div class="save-row">
@@ -461,7 +668,6 @@ function saveMatchPicks(matchId) {
     if (pk && (pk.h === undefined || pk.a === undefined)) delete picks[p.id][matchId];
   });
   localStorage.setItem(PICKS_KEY, JSON.stringify(picks));
-  // Re-render this card
   const m = wMatches.find(m => m.idEvent === matchId);
   const card = document.getElementById('mcard-'+matchId);
   if (m && card) {
@@ -470,7 +676,6 @@ function saveMatchPicks(matchId) {
     card.replaceWith(newCard.firstElementChild);
   }
   updateSettlement();
-  // Visual feedback
   const btn = document.querySelector(`button[onclick="saveMatchPicks('${matchId}')"]`);
   if (btn) { const o = btn.textContent; btn.textContent = '✅ 저장됨'; setTimeout(()=>btn.textContent=o, 1200); }
 }
@@ -486,7 +691,6 @@ function addParticipant() {
   localStorage.setItem(PARTS_KEY, JSON.stringify(participants));
   document.getElementById('p-name').value = '';
   renderParticipants();
-  // Re-render match list to show new participant rows
   if (wMatches.length) renderMatchList(document.getElementById('matches-list'));
   updateSettlement();
 }
@@ -591,10 +795,8 @@ async function startAIProgress() {
   for (const m of wMatches.slice(0, 32)) {
     try {
       const pred = await aiPredict(m.idEvent, m.strHomeTeam, m.strAwayTeam);
-      // Update AI score pill
       const aiEl = document.getElementById('ai-'+m.idEvent);
       if (aiEl) aiEl.innerHTML = `<span class="ai-score">${pred.best.h}:${pred.best.a}</span>`;
-      // Update prob bar
       const probEl = document.getElementById('prob-'+m.idEvent);
       const hn = (m.strHomeTeam||'').split(' ')[0] || '홈';
       const an = (m.strAwayTeam||'').split(' ')[0] || '원정';
@@ -602,7 +804,6 @@ async function startAIProgress() {
         <div class="ph" style="width:${pred.hw}%">${hn} ${pred.hw}%</div>
         <div class="pd" style="width:${pred.dw}%">무승부 ${pred.dw}%</div>
         <div class="pa" style="width:${pred.aw}%">${an} ${pred.aw}%</div>`;
-      // Update AI hint in bet panel
       const hintEl = document.getElementById('ai-hint-'+m.idEvent);
       if (hintEl) hintEl.outerHTML = buildAiHintHTML(m.idEvent, pred, m.strHomeTeam, m.strAwayTeam);
     } catch {}
