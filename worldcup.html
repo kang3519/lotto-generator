@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>⚽ 2026 월드컵 AI 예측 & 내기</title>
+  <style>
+    :root{--red:#e74c3c;--orange:#f39c12;--green:#27ae60;--blue:#2980b9;--primary:#3498db}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,Helvetica,sans-serif;background:#f0f4f8;min-height:100vh}
+    nav{background:#1a3a5c;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:20;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+    nav a{color:rgba(255,255,255,.75);text-decoration:none;font-size:.9rem;font-weight:600;padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.25)}
+    nav a:hover{background:rgba(255,255,255,.1)}
+    nav h1{flex:1;font-size:1rem;font-weight:700}
+    .container{max-width:800px;margin:0 auto;padding:20px 14px;display:flex;flex-direction:column;gap:16px}
+    .card{background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.07);padding:18px}
+    .card-title{font-size:1.1rem;font-weight:700;color:#222;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 18px;background:var(--primary);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:.9rem;font-weight:600;transition:filter .15s}
+    .btn:hover{filter:brightness(.9)}
+    .btn.danger{background:var(--red)}
+    .btn.sm{padding:5px 10px;font-size:.78rem}
+    input[type=text],input[type=number]{padding:8px 10px;border:1.5px solid #ddd;border-radius:7px;font-size:.9rem;width:100%;background:#fafafa}
+    input:focus{border-color:var(--primary);outline:none;background:#fff}
+
+    /* Round header */
+    .round-hdr{background:linear-gradient(90deg,#1a3a5c,#2980b9);color:#fff;border-radius:7px;padding:7px 12px;font-weight:700;font-size:.82rem;margin:14px 0 6px;letter-spacing:.5px}
+
+    /* Match card */
+    .match-card{border:1px solid #e8edf2;border-radius:10px;margin:6px 0;overflow:hidden;transition:box-shadow .15s}
+    .match-card:hover{box-shadow:0 2px 10px rgba(0,0,0,.08)}
+    .match-hdr{padding:12px 14px;cursor:pointer;user-select:none}
+    .match-teams{display:flex;align-items:center;gap:6px}
+    .team-name{flex:1;font-weight:600;font-size:.88rem;text-align:right;line-height:1.3}
+    .team-name.right{text-align:left}
+    .match-mid{text-align:center;min-width:110px;flex-shrink:0}
+    .ai-badge{display:inline-block;background:linear-gradient(135deg,#4776e6,#8e54e9);color:#fff;border-radius:5px;padding:3px 10px;font-size:.82rem;font-weight:700;margin-bottom:3px}
+    .ai-loading{color:#aaa;font-size:.78rem}
+    .actual-badge{display:inline-block;background:#1a3a5c;color:#fff;border-radius:5px;padding:3px 10px;font-size:.9rem;font-weight:700;margin-bottom:3px}
+    .match-date{font-size:.75rem;color:#aaa;margin-top:2px}
+    .ai-top{font-size:.7rem;color:#888;margin-top:2px}
+
+    /* Probability bar */
+    .prob-bar{display:flex;height:18px;border-radius:5px;overflow:hidden;margin-top:9px;font-size:.7rem;font-weight:700}
+    .pb-home{background:#3498db;color:#fff;display:flex;align-items:center;justify-content:center;min-width:0;overflow:hidden;white-space:nowrap;transition:width .4s}
+    .pb-draw{background:#95a5a6;color:#fff;display:flex;align-items:center;justify-content:center;min-width:0;overflow:hidden;white-space:nowrap;transition:width .4s}
+    .pb-away{background:#e74c3c;color:#fff;display:flex;align-items:center;justify-content:center;min-width:0;overflow:hidden;white-space:nowrap;transition:width .4s}
+
+    /* Picks expand section */
+    .picks-expand{border-top:1px solid #f0f4f8;background:#f8faff;padding:10px 14px}
+    .pick-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #eff3f7;flex-wrap:wrap}
+    .pick-row:last-child{border-bottom:none}
+    .pick-name{width:68px;font-size:.82rem;font-weight:700;flex-shrink:0;color:#333}
+    .pick-btns{display:flex;gap:4px;flex:1}
+    .pick-btn{flex:1;padding:5px 2px;font-size:.75rem;border:1.5px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-weight:600;color:#777;transition:all .12s}
+    .pick-btn:hover:not([disabled]){border-color:var(--primary);color:var(--primary)}
+    .pick-btn.ph{border-color:#3498db;background:#3498db;color:#fff}
+    .pick-btn.pd{border-color:#95a5a6;background:#95a5a6;color:#fff}
+    .pick-btn.pa{border-color:#e74c3c;background:#e74c3c;color:#fff}
+    .pick-btn[disabled]{opacity:.55;cursor:default}
+    .pick-icon{font-size:1rem;margin-left:4px;min-width:18px}
+
+    /* Participants */
+    .p-row{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid #f0f0f0}
+    .p-row:last-child{border-bottom:none}
+
+    /* Settlement */
+    .lb-row{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid #f5f5f5}
+    .lb-row:last-child{border-bottom:none}
+    .rank-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;color:#fff;flex-shrink:0;background:#aaa}
+    .rank-num.g{background:var(--orange)}.rank-num.s{background:#95a5a6}.rank-num.b{background:#cd7f32}
+    .txn{display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid #f5f5f5;font-size:.9rem}
+    .txn:last-child{border-bottom:none}
+    .txn-arrow{color:var(--red);font-weight:800;font-size:1.1rem}
+    .txn-amount{font-weight:700;color:var(--green);margin-left:auto}
+
+    @media(max-width:480px){.team-name{font-size:.78rem}.match-mid{min-width:90px}}
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html">🎱 로또</a>
+  <h1>⚽ 2026 FIFA 월드컵 AI 예측 &amp; 내기</h1>
+</nav>
+
+<div class="container">
+
+  <!-- ① 경기 & AI 예측 -->
+  <div class="card">
+    <div class="card-title">🤖 AI 스코어 예측</div>
+    <p style="font-size:.82rem;color:#888;margin-bottom:10px">
+      포아송 분포 모델 · 각 팀의 최근 경기 데이터로 예상 스코어 및 승률 계산<br>
+      경기를 클릭하면 참가자 픽을 선택할 수 있습니다
+    </p>
+    <div id="matches-list">
+      <div style="text-align:center;padding:40px;color:#bbb">⏳ 경기 데이터 로딩 중...</div>
+    </div>
+  </div>
+
+  <!-- ② 내기 참가자 -->
+  <div class="card">
+    <div class="card-title">👥 내기 참가자</div>
+    <div style="display:grid;grid-template-columns:1fr 140px auto;gap:8px;margin-bottom:14px;align-items:end">
+      <div>
+        <label style="font-size:.78rem;color:#888;display:block;margin-bottom:4px">이름</label>
+        <input type="text" id="p-name" placeholder="홍길동" />
+      </div>
+      <div>
+        <label style="font-size:.78rem;color:#888;display:block;margin-bottom:4px">경기당 내기 금액</label>
+        <input type="number" id="p-bet" placeholder="5000" min="0" step="1000" />
+      </div>
+      <button class="btn" onclick="addParticipant()" style="height:38px;margin:0">추가</button>
+    </div>
+    <div id="participants-list">
+      <p style="text-align:center;color:#bbb;font-size:.85rem;padding:8px">참가자를 추가하면 경기별 픽을 선택할 수 있습니다</p>
+    </div>
+  </div>
+
+  <!-- ③ 순위 & 정산 -->
+  <div class="card">
+    <div class="card-title">🏆 순위 &amp; 정산</div>
+    <p style="font-size:.8rem;color:#888;margin-bottom:12px">
+      맞춘 참가자가 틀린 참가자의 내기 금액을 나눠 가집니다 · 경기 종료 시 자동 반영
+    </p>
+    <div id="settlement">
+      <p style="text-align:center;color:#bbb;font-size:.85rem;padding:12px">참가자 추가 및 픽 입력 후 자동 계산됩니다</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ===== STATE ===== */
+const PARTS_KEY = 'wc2026_participants';
+const PICKS_KEY = 'wc2026_picks';
+
+let wMatches     = [];
+let participants = JSON.parse(localStorage.getItem(PARTS_KEY) || '[]');
+let picks        = JSON.parse(localStorage.getItem(PICKS_KEY) || '{}');
+const aiCache    = {};
+
+/* ===== FLAG MAP ===== */
+const F = {
+  'Brazil':'🇧🇷','France':'🇫🇷','Argentina':'🇦🇷','Spain':'🇪🇸','England':'🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'Germany':'🇩🇪','Portugal':'🇵🇹','Netherlands':'🇳🇱','Belgium':'🇧🇪','Italy':'🇮🇹',
+  'Croatia':'🇭🇷','Uruguay':'🇺🇾','Mexico':'🇲🇽','United States':'🇺🇸','Canada':'🇨🇦',
+  'Japan':'🇯🇵','South Korea':'🇰🇷','Australia':'🇦🇺','Morocco':'🇲🇦','Senegal':'🇸🇳',
+  'Ghana':'🇬🇭','Cameroon':'🇨🇲','Nigeria':'🇳🇬','Saudi Arabia':'🇸🇦','Iran':'🇮🇷',
+  'Poland':'🇵🇱','Switzerland':'🇨🇭','Denmark':'🇩🇰','Serbia':'🇷🇸','Ecuador':'🇪🇨',
+  'Colombia':'🇨🇴','Chile':'🇨🇱','Peru':'🇵🇪','Morocco':'🇲🇦','Tunisia':'🇹🇳',
+  'Algeria':'🇩🇿','Qatar':'🇶🇦','Costa Rica':'🇨🇷','Panama':'🇵🇦','Jamaica':'🇯🇲',
+  'New Zealand':'🇳🇿','Indonesia':'🇮🇩','Venezuela':'🇻🇪','Bolivia':'🇧🇴',
+};
+const flag = n => F[n] || '🏳️';
+
+/* ===== POISSON AI ===== */
+function poisson(k, λ) {
+  let r = Math.exp(-λ);
+  for (let i = 1; i <= k; i++) r *= λ / i;
+  return r;
+}
+
+async function fetchStrength(teamName) {
+  const s = await fetch(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(teamName)}`)
+    .then(r => r.json()).catch(() => null);
+  const team = s?.teams?.[0];
+  if (!team) return { atk: 1, def: 1 };
+
+  const e = await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id=${team.idTeam}`)
+    .then(r => r.json()).catch(() => null);
+  const events = (e?.results || []).slice(0, 8);
+  if (!events.length) return { atk: 1, def: 1 };
+
+  let scored = 0, conceded = 0;
+  events.forEach(ev => {
+    const home = ev.strHomeTeam === teamName || ev.strHomeTeam.startsWith(teamName.split(' ')[0]);
+    scored   += home ? +ev.intHomeScore : +ev.intAwayScore;
+    conceded += home ? +ev.intAwayScore : +ev.intHomeScore;
+  });
+
+  const avg = 1.35;
+  return {
+    atk: Math.max(0.3, (scored   / events.length) / avg),
+    def: Math.min(3.0, avg / Math.max(0.3, conceded / events.length))
+  };
+}
+
+async function aiPredict(matchId, home, away) {
+  if (aiCache[matchId]) return aiCache[matchId];
+
+  const [hs, as] = await Promise.all([fetchStrength(home), fetchStrength(away)]);
+  const hExp = hs.atk * as.def * 1.35 * 1.1; // 홈 이점 10%
+  const aExp = as.atk * hs.def * 1.35;
+
+  const probs = [];
+  let homeWin = 0, draw = 0, awayWin = 0;
+  for (let h = 0; h <= 6; h++) {
+    for (let a = 0; a <= 6; a++) {
+      const p = poisson(h, hExp) * poisson(a, aExp);
+      probs.push({ h, a, p });
+      if (h > a) homeWin += p; else if (h === a) draw += p; else awayWin += p;
+    }
+  }
+  probs.sort((a, b) => b.p - a.p);
+
+  const total = homeWin + draw + awayWin;
+  const result = {
+    best: probs[0],
+    top3: probs.slice(0, 3),
+    hw: Math.round(homeWin / total * 100),
+    dw: Math.round(draw    / total * 100),
+    aw: Math.round(awayWin / total * 100)
+  };
+  aiCache[matchId] = result;
+  return result;
+}
+
+/* ===== LOAD MATCHES ===== */
+async function loadMatches() {
+  const container = document.getElementById('matches-list');
+  try {
+    let events = null;
+    const res = await fetch('https://www.thesportsdb.com/api/v1/json/3/eventsseason.php?id=4480&s=2026')
+      .then(r => r.json()).catch(() => null);
+    events = res?.events;
+
+    if (!events?.length) {
+      const [past, next] = await Promise.all([
+        fetch('https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=4480').then(r=>r.json()).catch(()=>null),
+        fetch('https://www.thesportsdb.com/api/v1/json/3/eventsnextleague.php?id=4480').then(r=>r.json()).catch(()=>null),
+      ]);
+      events = [...(past?.events||[]), ...(next?.events||[])];
+    }
+
+    wMatches = (events||[]).sort((a,b) =>
+      new Date(a.dateEvent+'T'+(a.strTime||'00:00')) - new Date(b.dateEvent+'T'+(b.strTime||'00:00'))
+    );
+
+    if (!wMatches.length) {
+      container.innerHTML = `<div style="text-align:center;padding:40px;color:#aaa">
+        <div style="font-size:2.5em;margin-bottom:10px">⚽</div>
+        <div style="font-weight:700;color:#888">2026 월드컵 데이터 없음</div>
+        <div style="font-size:.82em;margin-top:6px">TheSportsDB에 데이터가 아직 없을 수 있습니다</div>
+      </div>`;
+      return;
+    }
+
+    renderMatchList(container);
+    startAIProgress();
+    renderParticipants();
+    updateSettlement();
+  } catch(e) {
+    container.innerHTML = `<div style="text-align:center;color:var(--red);padding:24px">오류: ${e.message}</div>`;
+  }
+}
+
+/* ===== RENDER MATCHES ===== */
+function actualOutcome(m) {
+  if (m.intHomeScore == null || m.intHomeScore === '') return null;
+  const h = +m.intHomeScore, a = +m.intAwayScore;
+  return h > a ? 'home' : h === a ? 'draw' : 'away';
+}
+
+function renderMatchList(container) {
+  const rounds = {};
+  wMatches.forEach(m => {
+    const r = m.strRound || `라운드 ${m.intRound||'?'}`;
+    (rounds[r] = rounds[r]||[]).push(m);
+  });
+
+  let html = '';
+  for (const [round, ms] of Object.entries(rounds)) {
+    html += `<div class="round-hdr">${round}</div>`;
+    for (const m of ms) {
+      const done = m.intHomeScore != null && m.intHomeScore !== '';
+      const date = m.dateEvent
+        ? new Date(m.dateEvent+'T12:00:00').toLocaleDateString('ko-KR',{month:'numeric',day:'numeric',weekday:'short'})
+        : '';
+
+      html += `<div class="match-card">
+        <div class="match-hdr" onclick="toggleExpand('${m.idEvent}')">
+          <div class="match-teams">
+            <span class="team-name">${flag(m.strHomeTeam)} ${m.strHomeTeam}</span>
+            <div class="match-mid">
+              <div id="ai-badge-${m.idEvent}">
+                <span class="ai-loading">AI 분석 중...</span>
+              </div>
+              ${done
+                ? `<div class="actual-badge">${m.intHomeScore}:${m.intAwayScore} <span style="font-size:.7em;opacity:.7">확정</span></div>`
+                : `<div class="match-date">${date}</div>`}
+            </div>
+            <span class="team-name right">${flag(m.strAwayTeam)} ${m.strAwayTeam}</span>
+          </div>
+          <div class="prob-bar" id="prob-${m.idEvent}">
+            <div class="pb-home" style="width:40%">홈</div>
+            <div class="pb-draw" style="width:20%">무</div>
+            <div class="pb-away" style="width:40%">원정</div>
+          </div>
+        </div>
+        <div class="picks-expand" id="expand-${m.idEvent}" style="display:none">
+          ${picksHTML(m)}
+        </div>
+      </div>`;
+    }
+  }
+  container.innerHTML = html;
+}
+
+function toggleExpand(matchId) {
+  const el = document.getElementById('expand-'+matchId);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+/* ===== PICKS HTML ===== */
+function picksHTML(m) {
+  if (!participants.length)
+    return '<p style="text-align:center;color:#bbb;padding:8px;font-size:.82rem">아래에서 참가자를 먼저 추가하세요</p>';
+
+  const done   = m.intHomeScore != null && m.intHomeScore !== '';
+  const actual = actualOutcome(m);
+
+  return participants.map(p => {
+    const pick = picks[p.id]?.[m.idEvent];
+    const correct = actual && pick === actual;
+    const wrong   = actual && pick && pick !== actual;
+
+    const mkBtn = (opt, label) => {
+      const selCls = pick === opt ? (opt==='home'?'ph':opt==='draw'?'pd':'pa') : '';
+      const cb = done ? '' : `onclick="setPick('${p.id}','${m.idEvent}','${opt}')"`;
+      return `<button class="pick-btn ${selCls}" ${done?'disabled':''} ${cb}>${label}</button>`;
+    };
+
+    return `<div class="pick-row">
+      <span class="pick-name">👤 ${p.name}</span>
+      <div class="pick-btns">
+        ${mkBtn('home','홈 승')}
+        ${mkBtn('draw','무승부')}
+        ${mkBtn('away','원정 승')}
+      </div>
+      <span class="pick-icon">${correct?'✅':wrong?'❌':''}</span>
+    </div>`;
+  }).join('');
+}
+
+function refreshExpands() {
+  wMatches.forEach(m => {
+    const el = document.getElementById('expand-'+m.idEvent);
+    if (el) el.innerHTML = picksHTML(m);
+  });
+}
+
+/* ===== AI PROGRESS ===== */
+async function startAIProgress() {
+  for (const m of wMatches.slice(0, 32)) {
+    try {
+      const pred = await aiPredict(m.idEvent, m.strHomeTeam, m.strAwayTeam);
+
+      const badgeEl = document.getElementById('ai-badge-'+m.idEvent);
+      if (badgeEl) {
+        const top3txt = pred.top3.map(s=>`${s.h}-${s.a}`).join(' / ');
+        badgeEl.innerHTML = `
+          <span class="ai-badge">AI ${pred.best.h}-${pred.best.a}</span>
+          <div class="ai-top">${top3txt}</div>`;
+      }
+
+      const probEl = document.getElementById('prob-'+m.idEvent);
+      if (probEl) {
+        probEl.innerHTML = `
+          <div class="pb-home" style="width:${pred.hw}%">홈 ${pred.hw}%</div>
+          <div class="pb-draw" style="width:${pred.dw}%">무 ${pred.dw}%</div>
+          <div class="pb-away" style="width:${pred.aw}%">원정 ${pred.aw}%</div>`;
+      }
+    } catch {}
+    await new Promise(r => setTimeout(r, 120));
+  }
+}
+
+/* ===== PARTICIPANTS ===== */
+function addParticipant() {
+  const name = document.getElementById('p-name').value.trim();
+  const bet  = +document.getElementById('p-bet').value;
+  if (!name)     { alert('이름을 입력하세요'); return; }
+  if (bet <= 0)  { alert('내기 금액을 입력하세요'); return; }
+  if (participants.some(p => p.name === name)) { alert('이미 있는 이름입니다'); return; }
+
+  participants.push({ id: Date.now().toString(36), name, bet });
+  localStorage.setItem(PARTS_KEY, JSON.stringify(participants));
+  document.getElementById('p-name').value = '';
+  renderParticipants();
+  refreshExpands();
+  updateSettlement();
+}
+
+function removeParticipant(id) {
+  if (!confirm('삭제할까요?')) return;
+  participants = participants.filter(p => p.id !== id);
+  localStorage.setItem(PARTS_KEY, JSON.stringify(participants));
+  renderParticipants();
+  refreshExpands();
+  updateSettlement();
+}
+
+function renderParticipants() {
+  const el = document.getElementById('participants-list');
+  if (!participants.length) {
+    el.innerHTML = '<p style="text-align:center;color:#bbb;font-size:.85rem;padding:8px">참가자를 추가해주세요</p>';
+    return;
+  }
+  el.innerHTML = participants.map(p => `
+    <div class="p-row">
+      <span style="flex:1;font-weight:700">👤 ${p.name}</span>
+      <span style="color:#888;font-size:.82rem">💰 ${p.bet.toLocaleString()}원/경기</span>
+      <button class="btn sm danger" onclick="removeParticipant('${p.id}')" style="margin:0;margin-left:8px">삭제</button>
+    </div>`).join('');
+}
+
+/* ===== PICKS ===== */
+function setPick(participantId, matchId, pick) {
+  if (!picks[participantId]) picks[participantId] = {};
+  picks[participantId][matchId] = pick;
+  localStorage.setItem(PICKS_KEY, JSON.stringify(picks));
+
+  const m = wMatches.find(m => m.idEvent === matchId);
+  const el = document.getElementById('expand-'+matchId);
+  if (m && el) el.innerHTML = picksHTML(m);
+
+  updateSettlement();
+}
+
+/* ===== SETTLEMENT ===== */
+function updateSettlement() {
+  const el = document.getElementById('settlement');
+  if (!participants.length) {
+    el.innerHTML = '<p style="text-align:center;color:#bbb;font-size:.85rem;padding:12px">참가자 추가 후 자동 계산됩니다</p>';
+    return;
+  }
+
+  // Build balance (net money) and points per participant
+  const balance = {}, points = {};
+  participants.forEach(p => { balance[p.id] = 0; points[p.id] = 0; });
+
+  let completedCount = 0;
+  wMatches.forEach(m => {
+    const actual = actualOutcome(m);
+    if (!actual) return;
+    completedCount++;
+
+    const entered  = participants.filter(p => picks[p.id]?.[m.idEvent]);
+    const winners  = entered.filter(p => picks[p.id][m.idEvent] === actual);
+    const losers   = entered.filter(p => picks[p.id][m.idEvent] !== actual);
+
+    winners.forEach(p => points[p.id]++);
+
+    if (!winners.length || !losers.length) return;
+
+    // Pot = sum of all entered bets; winners split equally
+    const pot = entered.reduce((s, p) => s + p.bet, 0);
+    const perWinner = pot / winners.length;
+    winners.forEach(p => { balance[p.id] += perWinner - p.bet; });
+    losers.forEach(p  => { balance[p.id] -= p.bet; });
+  });
+
+  const ranked = participants.slice().sort((a, b) =>
+    points[b.id] - points[a.id] || balance[b.id] - balance[a.id]
+  );
+  const rc = i => ['g','s','b'][i] || '';
+  const med = i => ['🥇','🥈','🥉'][i] || '';
+
+  let html = '';
+
+  // Leaderboard
+  html += ranked.map((p, i) => {
+    const net = balance[p.id];
+    const netStr = net > 0
+      ? `<span style="color:var(--green);font-weight:800">+${Math.round(net).toLocaleString()}원</span>`
+      : net < 0
+      ? `<span style="color:var(--red);font-weight:800">${Math.round(net).toLocaleString()}원</span>`
+      : `<span style="color:#aaa">±0원</span>`;
+    const totalPredicted = Object.keys(picks[p.id]||{}).length;
+    return `<div class="lb-row">
+      <div class="rank-num ${rc(i)}">${i+1}</div>
+      <div style="flex:1">
+        <div style="font-weight:700">${p.name} ${med(i)}</div>
+        <div style="font-size:.78rem;color:#aaa">${points[p.id]}경기 적중 · 예측 ${totalPredicted}경기</div>
+      </div>
+      <div>${netStr}</div>
+    </div>`;
+  }).join('');
+
+  // Transaction settlement
+  const pos = participants.filter(p => balance[p.id] >  0.5).map(p => ({...p, amount:  balance[p.id]})).sort((a,b)=>b.amount-a.amount);
+  const neg = participants.filter(p => balance[p.id] < -0.5).map(p => ({...p, amount: -balance[p.id]})).sort((a,b)=>b.amount-a.amount);
+
+  if (neg.length && completedCount > 0) {
+    html += `<div style="border-top:2px solid #f0f4f8;margin-top:12px;padding-top:12px">
+      <div style="font-weight:700;color:#333;margin-bottom:8px;font-size:.95rem">💸 정산 내역</div>`;
+
+    // Greedy minimum-transaction settlement
+    const p2 = pos.map(p => ({name:p.name, amount:p.amount}));
+    const n2 = neg.map(p => ({name:p.name, amount:p.amount}));
+    let i = 0, j = 0;
+    while (i < n2.length && j < p2.length) {
+      const amount = Math.min(n2[i].amount, p2[j].amount);
+      if (amount >= 1) {
+        html += `<div class="txn">
+          <span style="font-weight:700">${n2[i].name}</span>
+          <span class="txn-arrow">→</span>
+          <span style="font-weight:700">${p2[j].name}</span>
+          <span class="txn-amount">${Math.round(amount).toLocaleString()}원</span>
+        </div>`;
+      }
+      n2[i].amount -= amount; p2[j].amount -= amount;
+      if (n2[i].amount < 1) i++;
+      if (p2[j].amount < 1) j++;
+    }
+    html += `</div>`;
+  } else if (completedCount === 0) {
+    html += `<div style="text-align:center;color:#bbb;font-size:.82rem;padding:10px;border-top:1px solid #f0f4f8;margin-top:10px">
+      경기 결과가 확정되면 내기 결과가 자동 계산됩니다</div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+/* ===== INIT ===== */
+document.addEventListener('DOMContentLoaded', () => {
+  loadMatches();
+  renderParticipants();
+});
+</script>
+</body>
+</html>
