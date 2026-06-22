@@ -237,26 +237,28 @@ async function fetchStrength(teamName) {
   const s = await fetch(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(teamName)}`)
     .then(r => r.json()).catch(() => null);
   const team = s?.teams?.[0];
-  if (!team) return teamCache[teamName] = { atk: 1, def: 1, id: null };
+  if (!team) return teamCache[teamName] = { scored: 1.2, conceded: 1.2, id: null };
   const e = await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id=${team.idTeam}`)
     .then(r => r.json()).catch(() => null);
-  const events = (e?.results || []).filter(ev => ev.intHomeScore != null).slice(0, 10);
-  if (!events.length) return teamCache[teamName] = { atk: 1, def: 1, id: team.idTeam };
+  const events = (e?.results || [])
+    .filter(ev => ev.intHomeScore != null && ev.intAwayScore != null)
+    .slice(0, 10);
+  if (!events.length) return teamCache[teamName] = { scored: 1.2, conceded: 1.2, id: team.idTeam };
   let scored = 0, conceded = 0;
   events.forEach(ev => {
-    const isHome = ev.strHomeTeam === teamName || ev.strHomeTeam.startsWith(teamName.split(' ')[0]);
+    const isHome = String(ev.idHomeTeam) === String(team.idTeam);
     scored   += isHome ? +ev.intHomeScore : +ev.intAwayScore;
     conceded += isHome ? +ev.intAwayScore : +ev.intHomeScore;
   });
-  const avg = 1.35;
+  const n = events.length;
   return teamCache[teamName] = {
     id: team.idTeam,
-    atk: Math.max(0.3, (scored   / events.length) / avg),
-    def: Math.min(3.0, avg / Math.max(0.3, conceded / events.length))
+    scored:   Math.max(0.3, Math.min(3.0, scored   / n)),
+    conceded: Math.max(0.3, Math.min(3.0, conceded / n))
   };
 }
 
-/* 상대 전적(H2H): 두 팀 ID로 최근 맞대결 결과를 가져와 공격/수비 강도 반환 */
+/* 상대 전적(H2H): 두 팀의 맞대결 평균 득점 반환 */
 async function fetchH2H(id1, id2) {
   if (!id1 || !id2) return null;
   const r = await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsh2h.php?id1=${id1}&id2=${id2}`)
@@ -264,7 +266,7 @@ async function fetchH2H(id1, id2) {
   const events = (r?.results || [])
     .filter(ev => ev.intHomeScore != null && ev.intAwayScore != null)
     .slice(0, 10);
-  if (events.length < 3) return null;  // 데이터 부족 시 무시
+  if (events.length < 3) return null;
   let s1 = 0, c1 = 0;
   events.forEach(ev => {
     if (String(ev.idHomeTeam) === String(id1)) {
@@ -273,14 +275,8 @@ async function fetchH2H(id1, id2) {
       s1 += +ev.intAwayScore; c1 += +ev.intHomeScore;
     }
   });
-  const n = events.length, avg = 1.35;
-  return {
-    atk1: Math.max(0.3, (s1/n) / avg),
-    def1: Math.min(3.0, avg / Math.max(0.3, c1/n)),
-    atk2: Math.max(0.3, (c1/n) / avg),
-    def2: Math.min(3.0, avg / Math.max(0.3, s1/n)),
-    count: n
-  };
+  const n = events.length;
+  return { h_scored: s1 / n, a_scored: c1 / n, count: n };
 }
 
 async function aiPredict(matchId, home, away) {
@@ -288,19 +284,21 @@ async function aiPredict(matchId, home, away) {
   const [hs, as_] = await Promise.all([fetchStrength(home), fetchStrength(away)]);
   const h2h = await fetchH2H(hs.id, as_.id);
 
-  let hAtk = hs.atk, hDef = hs.def, aAtk = as_.atk, aDef = as_.def;
+  // 단순 평균법: (자팀 평균 득점 + 상대팀 평균 실점) / 2
+  // 곱셈 공식은 극단값에서 폭발하므로 평균법 사용
+  let hExp = (hs.scored + as_.conceded) / 2;
+  let aExp = (as_.scored + hs.conceded) / 2;
+
   if (h2h) {
-    // 최근 폼 60% + 상대 전적 40% 블렌딩
-    hAtk = hAtk * 0.6 + h2h.atk1 * 0.4;
-    hDef = hDef * 0.6 + h2h.def1 * 0.4;
-    aAtk = aAtk * 0.6 + h2h.atk2 * 0.4;
-    aDef = aDef * 0.6 + h2h.def2 * 0.4;
+    // 폼 60% + H2H 실제 맞대결 40% 블렌딩
+    hExp = hExp * 0.6 + h2h.h_scored * 0.4;
+    aExp = aExp * 0.6 + h2h.a_scored * 0.4;
   }
 
   // 월드컵은 중립지 개최 — 멕시코만 홈 어드밴티지 적용
-  const homeBonus = home === 'Mexico' ? 1.08 : 1.0;
-  const hExp = hAtk * aDef * 1.35 * homeBonus;
-  const aExp = aAtk * hDef * 1.35;
+  if (home === 'Mexico') hExp *= 1.08;
+  hExp = Math.max(0.3, Math.min(3.5, hExp));
+  aExp = Math.max(0.3, Math.min(3.5, aExp));
 
   const probs = [];
   let hw = 0, dw = 0, aw = 0;
