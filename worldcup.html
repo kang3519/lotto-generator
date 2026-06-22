@@ -214,6 +214,16 @@ const F = {
 };
 const flag = n => F[n] || '🏳️';
 
+/* 팀명 축약 — 두 단어 이상인 경우 "New Zealand" → "NZL" 식으로 */
+const ABBR = {
+  'New Zealand':'NZL','United States':'USA','South Korea':'KOR',
+  'Saudi Arabia':'KSA','Costa Rica':'CRC','South Africa':'RSA',
+  'Trinidad and Tobago':'T&T','El Salvador':'SLV','Ivory Coast':'CIV',
+  "Cote d'Ivoire":'CIV','Congo DR':'DRC','Czech Republic':'CZE',
+  'Bosnia and Herzegovina':'BiH',
+};
+const abbr = n => ABBR[n] || (n||'').split(' ')[0];
+
 /* ===== POISSON AI ===== */
 function poisson(k, λ) {
   let r = Math.exp(-λ);
@@ -619,15 +629,18 @@ function matchCardHTML(m) {
       <div class="match-row">
         <span class="team r">${flag(m.strHomeTeam)} ${m.strHomeTeam}</span>
         <div class="mid">
-          <div id="ai-${m.idEvent}">${ai ? `<span class="ai-score">${ai.best.h}:${ai.best.a}</span>` : '<span style="color:#ccc;font-size:.72rem">AI 분석 중...</span>'}</div>
-          ${done ? `<div class="actual-score">${done.h} : ${done.a}</div>` : `<div class="match-date">${date}</div>`}
+          <div style="font-size:.6rem;color:#aaa;margin-bottom:2px">🤖 AI 예측</div>
+          <div id="ai-${m.idEvent}">${ai ? `<span class="ai-score">${ai.best.h}:${ai.best.a}</span>` : '<span style="color:#ccc;font-size:.72rem">분석 중...</span>'}</div>
+          ${done
+            ? `<div style="font-size:.6rem;color:#aaa;margin:4px 0 2px">⚽ 실제 결과</div><div class="actual-score">${done.h} : ${done.a}</div>`
+            : `<div class="match-date">${date}</div>`}
         </div>
         <span class="team">${flag(m.strAwayTeam)} ${m.strAwayTeam}</span>
       </div>
       <div class="prob-bar" id="prob-${m.idEvent}">
         ${ai
-          ? `<div class="ph" style="width:${ai.hw}%">${m.strHomeTeam.split(' ')[0]} ${ai.hw}%</div><div class="pd" style="width:${ai.dw}%">무승부 ${ai.dw}%</div><div class="pa" style="width:${ai.aw}%">${m.strAwayTeam.split(' ')[0]} ${ai.aw}%</div>`
-          : `<div class="ph" style="width:40%">${m.strHomeTeam.split(' ')[0]}</div><div class="pd" style="width:20%">무승부</div><div class="pa" style="width:40%">${m.strAwayTeam.split(' ')[0]}</div>`}
+          ? `<div class="ph" style="width:${ai.hw}%">${abbr(m.strHomeTeam)} ${ai.hw}%</div><div class="pd" style="width:${ai.dw}%">무 ${ai.dw}%</div><div class="pa" style="width:${ai.aw}%">${abbr(m.strAwayTeam)} ${ai.aw}%</div>`
+          : `<div class="ph" style="width:40%">${abbr(m.strHomeTeam)}</div><div class="pd" style="width:20%">무</div><div class="pa" style="width:40%">${abbr(m.strAwayTeam)}</div>`}
       </div>
     </div>
     <div class="bet-panel">
@@ -798,12 +811,10 @@ async function startAIProgress() {
       const aiEl = document.getElementById('ai-'+m.idEvent);
       if (aiEl) aiEl.innerHTML = `<span class="ai-score">${pred.best.h}:${pred.best.a}</span>`;
       const probEl = document.getElementById('prob-'+m.idEvent);
-      const hn = (m.strHomeTeam||'').split(' ')[0] || '홈';
-      const an = (m.strAwayTeam||'').split(' ')[0] || '원정';
       if (probEl) probEl.innerHTML = `
-        <div class="ph" style="width:${pred.hw}%">${hn} ${pred.hw}%</div>
-        <div class="pd" style="width:${pred.dw}%">무승부 ${pred.dw}%</div>
-        <div class="pa" style="width:${pred.aw}%">${an} ${pred.aw}%</div>`;
+        <div class="ph" style="width:${pred.hw}%">${abbr(m.strHomeTeam)} ${pred.hw}%</div>
+        <div class="pd" style="width:${pred.dw}%">무 ${pred.dw}%</div>
+        <div class="pa" style="width:${pred.aw}%">${abbr(m.strAwayTeam)} ${pred.aw}%</div>`;
       const hintEl = document.getElementById('ai-hint-'+m.idEvent);
       if (hintEl) hintEl.outerHTML = buildAiHintHTML(m.idEvent, pred, m.strHomeTeam, m.strAwayTeam);
     } catch {}
