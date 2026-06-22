@@ -155,6 +155,15 @@ const F = {
   'Qatar':'🇶🇦','Costa Rica':'🇨🇷','Panama':'🇵🇦','Jamaica':'🇯🇲','Indonesia':'🇮🇩',
   'Venezuela':'🇻🇪','Bolivia':'🇧🇴','New Zealand':'🇳🇿','Kenya':'🇰🇪',
   'Morocco':'🇲🇦','Wales':'🏴󠁧󠁢󠁷󠁬󠁳󠁿','Scotland':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','Ukraine':'🇺🇦','Turkey':'🇹🇷',
+  'South Africa':'🇿🇦','Egypt':'🇪🇬','Ivory Coast':'🇨🇮',"Cote d'Ivoire":'🇨🇮',
+  'Mali':'🇲🇱','Congo DR':'🇨🇩','Zambia':'🇿🇲','Tanzania':'🇹🇿','Benin':'🇧🇯',
+  'Honduras':'🇭🇳','El Salvador':'🇸🇻','Trinidad':'🇹🇹','Trinidad and Tobago':'🇹🇹',
+  'Cuba':'🇨🇺','Guatemala':'🇬🇹','Haiti':'🇭🇹',
+  'Iraq':'🇮🇶','Uzbekistan':'🇺🇿','Oman':'🇴🇲','Bahrain':'🇧🇭','Jordan':'🇯🇴',
+  'Lebanon':'🇱🇧','Syria':'🇸🇾','Kyrgyzstan':'🇰🇬','Tajikistan':'🇹🇯',
+  'Czech Republic':'🇨🇿','Slovakia':'🇸🇰','Hungary':'🇭🇺','Romania':'🇷🇴',
+  'Austria':'🇦🇹','Greece':'🇬🇷','Bulgaria':'🇧🇬','Albania':'🇦🇱',
+  'Iceland':'🇮🇸','Norway':'🇳🇴','Sweden':'🇸🇪','Finland':'🇫🇮',
 };
 const flag = n => F[n] || '🏳️';
 
@@ -234,32 +243,30 @@ async function findWCLeagueId() {
 /* ===== LOAD MATCHES ===== */
 async function loadMatches() {
   const container = document.getElementById('matches-list');
+  container.innerHTML = `<div style="text-align:center;padding:20px;color:#bbb">⏳ FIFA 월드컵 리그 확인 중...</div>`;
   try {
-    let events = [];
-
-    // Step 1: Find correct World Cup league ID
     const leagueId = await findWCLeagueId();
-    if (leagueId) {
-      const r = await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsseason.php?id=${leagueId}&s=2026`)
-        .then(r => r.json()).catch(() => null);
-      events = r?.events || [];
-
-      // If season query empty, try past+next
-      if (!events.length) {
-        const [past, nxt] = await Promise.all([
-          fetch(`https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=${leagueId}`).then(r=>r.json()).catch(()=>null),
-          fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsnextleague.php?id=${leagueId}`).then(r=>r.json()).catch(()=>null),
-        ]);
-        events = [...(past?.events||[]), ...(nxt?.events||[])];
-      }
+    if (!leagueId) {
+      container.innerHTML = `<div style="text-align:center;padding:40px;color:#aaa"><div style="font-size:2em">⚽</div><div style="font-weight:700;margin-top:8px">월드컵 리그를 찾지 못했습니다</div></div>`;
+      return;
     }
 
-    // Step 2: Filter to only 2026 events
-    if (events.length) {
-      events = events.filter(e => e.dateEvent?.startsWith('2026'));
-    }
+    container.innerHTML = `<div style="text-align:center;padding:20px;color:#bbb">⏳ 경기 일정 로딩 중...</div>`;
 
-    wMatches = events.sort((a,b) =>
+    // Load season + past + upcoming all at once for maximum coverage
+    const [season, past, nxt] = await Promise.all([
+      fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsseason.php?id=${leagueId}&s=2026`).then(r=>r.json()).catch(()=>null),
+      fetch(`https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=${leagueId}`).then(r=>r.json()).catch(()=>null),
+      fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsnextleague.php?id=${leagueId}`).then(r=>r.json()).catch(()=>null),
+    ]);
+
+    // Merge all, deduplicate by idEvent, 2026 only
+    const allMap = new Map();
+    [...(season?.events||[]), ...(past?.events||[]), ...(nxt?.events||[])].forEach(e => {
+      if (e.dateEvent?.startsWith('2026')) allMap.set(e.idEvent, e);
+    });
+
+    wMatches = [...allMap.values()].sort((a,b) =>
       new Date(a.dateEvent+'T'+(a.strTime||'00:00')) - new Date(b.dateEvent+'T'+(b.strTime||'00:00'))
     );
 
@@ -268,7 +275,7 @@ async function loadMatches() {
         <div style="font-size:2.5em">⚽</div>
         <div style="font-weight:700;margin-top:8px">2026 FIFA 월드컵 데이터 없음</div>
         <div style="font-size:.8em;color:#bbb;margin-top:4px">TheSportsDB에 2026 월드컵 데이터가 아직 없습니다</div>
-        <div style="font-size:.75em;color:#ccc;margin-top:2px">리그 ID: ${leagueId || '미확인'}</div>
+        <div style="font-size:.75em;color:#ccc;margin-top:2px">리그 ID: ${leagueId}</div>
       </div>`;
       return;
     }
@@ -341,7 +348,11 @@ function matchCardHTML(m) {
     const entered = participants.filter(p => picks[p.id]?.[m.idEvent]?.h !== undefined);
     const pot = entered.reduce((s,p) => s + p.bet, 0);
 
-    betRowsHTML = '<div class="bet-rows">';
+    const inputLabel = done
+      ? `<div style="font-size:.73rem;color:#aaa;margin-bottom:6px">📊 경기 종료 — 예측 잠금</div>`
+      : `<div style="font-size:.73rem;color:var(--primary);font-weight:700;margin-bottom:6px">✏️ 예측 스코어 입력 (홈 : 원정)</div>`;
+
+    betRowsHTML = inputLabel + '<div class="bet-rows">';
     participants.forEach(p => {
       const pick = picks[p.id]?.[m.idEvent];
       const hVal = pick?.h !== undefined ? pick.h : '';
@@ -350,7 +361,7 @@ function matchCardHTML(m) {
       const actual = actualResult(m);
       const isExact = actual && pick && pick.h === actual.h && pick.a === actual.a;
 
-      let badge = `<span class="badge-none result-badge">미입력</span>`;
+      let badge = `<span class="badge-none result-badge">${done ? '' : '미입력'}</span>`;
       if (actual && pick !== undefined) {
         if (isWinner) {
           const share = pot / winners.length;
@@ -360,19 +371,21 @@ function matchCardHTML(m) {
           badge = `<span class="${cls} result-badge">${label}<br>+${Math.round(net).toLocaleString()}원</span>`;
         } else if (pick) {
           badge = `<span class="badge-lose result-badge">❌ -${p.bet.toLocaleString()}원</span>`;
+        } else {
+          badge = `<span class="badge-none result-badge">미입력</span>`;
         }
       }
 
       betRowsHTML += `<div class="bet-row">
-        <div class="bet-pname">👤 ${p.name}<br><span class="bet-amount">${p.bet.toLocaleString()}원</span></div>
+        <div class="bet-pname">👤 ${p.name}<br><span class="bet-amount">${p.bet.toLocaleString()}원/경기</span></div>
         <div class="score-cell">
           <input class="s-inp" type="number" min="0" max="20"
-            value="${hVal}" placeholder="-"
+            value="${hVal}" placeholder="0"
             data-pid="${p.id}" data-mid="${m.idEvent}" data-side="h"
             ${done ? 'disabled' : ''} />
           <span class="colon">:</span>
           <input class="s-inp" type="number" min="0" max="20"
-            value="${aVal}" placeholder="-"
+            value="${aVal}" placeholder="0"
             data-pid="${p.id}" data-mid="${m.idEvent}" data-side="a"
             ${done ? 'disabled' : ''} />
         </div>
@@ -406,8 +419,8 @@ function matchCardHTML(m) {
       </div>
       <div class="prob-bar" id="prob-${m.idEvent}">
         ${ai
-          ? `<div class="ph" style="width:${ai.hw}%">홈 ${ai.hw}%</div><div class="pd" style="width:${ai.dw}%">무 ${ai.dw}%</div><div class="pa" style="width:${ai.aw}%">원정 ${ai.aw}%</div>`
-          : `<div class="ph" style="width:40%">홈</div><div class="pd" style="width:20%">무</div><div class="pa" style="width:40%">원정</div>`}
+          ? `<div class="ph" style="width:${ai.hw}%">홈팀 승 ${ai.hw}%</div><div class="pd" style="width:${ai.dw}%">무승부 ${ai.dw}%</div><div class="pa" style="width:${ai.aw}%">원정팀 승 ${ai.aw}%</div>`
+          : `<div class="ph" style="width:40%">홈팀 승</div><div class="pd" style="width:20%">무승부</div><div class="pa" style="width:40%">원정팀 승</div>`}
       </div>
     </div>
     <div class="bet-panel">
@@ -420,10 +433,10 @@ function matchCardHTML(m) {
 function buildAiHintHTML(matchId, ai) {
   const top3 = ai.top3.map(s=>`${s.h}:${s.a}`).join(' / ');
   return `<div class="ai-hint" id="ai-hint-${matchId}">
-    🤖 AI 예측: <strong>${ai.best.h}:${ai.best.a}</strong> &nbsp;|&nbsp;
-    홈 <strong style="color:#3498db">${ai.hw}%</strong>
-    무 <strong style="color:#95a5a6">${ai.dw}%</strong>
-    원정 <strong style="color:#e74c3c">${ai.aw}%</strong>
+    🤖 AI 예측 스코어: <strong>${ai.best.h}:${ai.best.a}</strong> &nbsp;|&nbsp;
+    홈팀 승 <strong style="color:#3498db">${ai.hw}%</strong> ·
+    무승부 <strong style="color:#95a5a6">${ai.dw}%</strong> ·
+    원정팀 승 <strong style="color:#e74c3c">${ai.aw}%</strong>
     <span style="font-size:.7rem;color:#bbb">(상위3: ${top3})</span>
   </div>`;
 }
@@ -582,9 +595,9 @@ async function startAIProgress() {
       // Update prob bar
       const probEl = document.getElementById('prob-'+m.idEvent);
       if (probEl) probEl.innerHTML = `
-        <div class="ph" style="width:${pred.hw}%">홈 ${pred.hw}%</div>
-        <div class="pd" style="width:${pred.dw}%">무 ${pred.dw}%</div>
-        <div class="pa" style="width:${pred.aw}%">원정 ${pred.aw}%</div>`;
+        <div class="ph" style="width:${pred.hw}%">홈팀 승 ${pred.hw}%</div>
+        <div class="pd" style="width:${pred.dw}%">무승부 ${pred.dw}%</div>
+        <div class="pa" style="width:${pred.aw}%">원정팀 승 ${pred.aw}%</div>`;
       // Update AI hint in bet panel
       const hintEl = document.getElementById('ai-hint-'+m.idEvent);
       if (hintEl) hintEl.outerHTML = buildAiHintHTML(m.idEvent, pred);
