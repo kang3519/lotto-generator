@@ -191,6 +191,16 @@ let wcLeagueId   = null;
 let settlementCache = null;
 
 /* ===== DATE HELPERS ===== */
+// strTime in STATIC_MATCHES / TheSportsDB is UTC → convert to KST (+9h) for display
+function utcToKst(dateStr, timeStr) {
+  const d = new Date(dateStr + 'T' + (timeStr || '00:00:00') + 'Z');
+  d.setTime(d.getTime() + 9 * 60 * 60 * 1000);
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  const hh = String(d.getUTCHours()).padStart(2, '0');
+  const mi = String(d.getUTCMinutes()).padStart(2, '0');
+  return { date: `${mm}/${dd}`, time: `${hh}:${mi}`, dateStr: `${d.getUTCFullYear()}-${mm}-${dd}` };
+}
 const todayStr = () => new Date().toISOString().slice(0, 10);
 function addDays(dateStr, n) {
   const d = new Date(dateStr + 'T00:00:00Z');
@@ -565,7 +575,7 @@ function buildMatchesFromCache(cache) {
     if (e.dateEvent?.startsWith('2026')) allMap.set(e.idEvent, e);
   }));
   return [...allMap.values()].sort((a,b) =>
-    new Date(a.dateEvent+'T'+(a.strTime||'00:00')) - new Date(b.dateEvent+'T'+(b.strTime||'00:00'))
+    new Date(a.dateEvent+'T'+(a.strTime||'00:00')+'Z') - new Date(b.dateEvent+'T'+(b.strTime||'00:00')+'Z')
   );
 }
 
@@ -655,7 +665,7 @@ async function loadMatches() {
 function isUpcoming(m) {
   if (actualResult(m)) return false;             // 결과 있으면 지난 경기
   if (!m.dateEvent) return true;
-  const d = new Date(`${m.dateEvent}T${m.strTime||'00:00:00'}`);
+  const d = new Date(`${m.dateEvent}T${m.strTime||'00:00:00'}Z`); // strTime is UTC
   return d >= new Date(Date.now() - 2 * 60 * 60 * 1000); // 2시간 전까지는 "다가올" 취급
 }
 
@@ -670,8 +680,9 @@ function populateRoundFilter() {
 
   sel.innerHTML = `<option value="upcoming">다가올 경기 전체 (${upcomingCount}경기)</option>` +
     upcoming.map(m => {
-      const date = m.dateEvent ? m.dateEvent.slice(5).replace('-', '/') : '';
-      const time = m.strTime ? m.strTime.slice(0,5) : '';
+      const kst = m.dateEvent ? utcToKst(m.dateEvent, m.strTime) : null;
+      const date = kst ? kst.date : '';
+      const time = kst ? kst.time : '';
       const label = `${flag(m.strHomeTeam)}${kor(m.strHomeTeam)} vs ${flag(m.strAwayTeam)}${kor(m.strAwayTeam)}${date ? ' · '+date : ''}${time ? ' '+time : ''}`;
       return `<option value="${m.idEvent}">${label}</option>`;
     }).join('');
@@ -907,8 +918,9 @@ function renderMatchList(container) {
 function matchCardHTML(m, settlement) {
   settlement = settlement || settlementCache || refreshSettlement();
   const done = actualResult(m);
-  const date = m.dateEvent
-    ? new Date(m.dateEvent+'T12:00:00').toLocaleDateString('ko-KR',{month:'numeric',day:'numeric',weekday:'short'})
+  const kst = m.dateEvent ? utcToKst(m.dateEvent, m.strTime) : null;
+  const date = kst
+    ? new Date(kst.dateStr+'T12:00:00').toLocaleDateString('ko-KR',{month:'numeric',day:'numeric',weekday:'short'})
     : '';
   const ai = aiCache[m.idEvent];
 
