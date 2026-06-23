@@ -648,10 +648,50 @@ async function fetchAllMatches(leagueId, onProgress) {
    1) 내장된 STATIC_MATCHES로 즉시 렌더링한다 (네트워크 호출 없음 → 첫 로딩이 거의 즉각적).
    2) 그 다음 백그라운드에서 아직 끝나지 않은 날짜만 보완 조회해, 끝나면 한 번 더 갱신해준다
       (화면을 가리는 로딩 스피너 없이 진행). */
+/* data/worldcup.json (GitHub Actions가 6시간마다 업데이트)을 로드해
+   STATIC_MATCHES에 병합한다. JSON 항목이 동일 idEvent의 STATIC 항목을 덮어씀. */
+async function loadJsonData() {
+  try {
+    const r = await fetch('./data/worldcup.json', { cache: 'no-cache' });
+    if (!r.ok) return;
+    const d = await r.json();
+    const evs = d.events || [];
+    if (!evs.length) return;
+    const map = new Map(STATIC_MATCHES.map(m => [m.idEvent, m]));
+    for (const ev of evs) {
+      if (!ev.idEvent) continue;
+      // TheSportsDB 필드 → STATIC_MATCHES 형식으로 정규화
+      const norm = {
+        idEvent:      ev.idEvent,
+        dateEvent:    ev.dateEvent || ev.strDate || '',
+        strTime:      ev.strTime   || '00:00:00',
+        strGroup:     ev.strGroup  || (map.get(ev.idEvent)||{}).strGroup || '',
+        strHomeTeam:  ev.strHomeTeam || '',
+        strAwayTeam:  ev.strAwayTeam || '',
+        idHomeTeam:   ev.idHomeTeam  || (map.get(ev.idEvent)||{}).idHomeTeam || '',
+        idAwayTeam:   ev.idAwayTeam  || (map.get(ev.idEvent)||{}).idAwayTeam || '',
+        intHomeScore: ev.intHomeScore !== undefined ? ev.intHomeScore : null,
+        intAwayScore: ev.intAwayScore !== undefined ? ev.intAwayScore : null,
+        intRound:     ev.intRound    || (map.get(ev.idEvent)||{}).intRound || '',
+      };
+      map.set(ev.idEvent, norm);
+    }
+    // STATIC_MATCHES를 업데이트된 값으로 교체
+    STATIC_MATCHES.length = 0;
+    STATIC_MATCHES.push(...map.values());
+    console.log(`worldcup.json 로드: ${evs.length}경기 병합 완료`);
+  } catch(e) {
+    console.warn('worldcup.json 로드 실패 (정적 데이터로 계속):', e.message);
+  }
+}
+
 async function loadMatches() {
   const container = document.getElementById('matches-list');
   container.innerHTML = `<div style="text-align:center;padding:20px;color:#bbb">⏳ FIFA 월드컵 리그 확인 중...</div>`;
   try {
+    // 0) GitHub Actions가 저장한 JSON으로 STATIC_MATCHES 보완
+    await loadJsonData();
+
     if (!wcLeagueId) wcLeagueId = await findWCLeagueId();
     if (!wcLeagueId) {
       container.innerHTML = `<div style="text-align:center;padding:40px;color:#aaa"><div style="font-size:2em">⚽</div><div style="font-weight:700;margin-top:8px">월드컵 리그를 찾지 못했습니다</div><div style="font-size:.8em;color:#bbb;margin-top:4px">네트워크 상태를 확인하고 🔄 버튼으로 다시 시도해보세요</div></div>`;
