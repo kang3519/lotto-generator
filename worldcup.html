@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>⚽ 2026 월드컵 AI 예측 & 내기</title>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     :root{--red:#e74c3c;--orange:#f39c12;--green:#27ae60;--blue:#2980b9;--primary:#3498db}
     *{box-sizing:border-box;margin:0;padding:0}
@@ -164,7 +165,9 @@
 
   <!-- ④ 종합 정산 -->
   <div class="card">
-    <div class="card-title">🏆 종합 순위 &amp; 정산</div>
+    <div class="card-title">🏆 종합 순위 &amp; 정산
+      <button class="btn sm" id="share-settlement-btn" onclick="shareSettlement()" style="margin-left:auto;background:#fee500;color:#3c1e1e;font-size:.78rem">📸 캡처 공유</button>
+    </div>
     <p style="font-size:.8rem;color:#888;margin-bottom:12px">
       🎯 정확한 스코어 → 그 경기 판돈 + 누적 적립금 전액 수령 &nbsp;|&nbsp; 아무도 못 맞추면 → 판돈은 적립되어 다음에 정확히 맞춘 사람에게 이전
     </p>
@@ -1240,6 +1243,49 @@ function updateSettlement() {
     html += `<p style="text-align:center;color:#bbb;font-size:.82rem;padding:10px;border-top:1px solid #f0f4f8;margin-top:10px">경기 결과가 나오면 자동으로 계산됩니다</p>`;
   }
   el.innerHTML = html;
+}
+
+/* ===== 내기 현황 캡처 & 공유 ===== */
+async function shareSettlement() {
+  const btn = document.getElementById('share-settlement-btn');
+  const card = btn.closest('.card');
+  btn.textContent = '⏳ 캡처 중...';
+  btn.disabled = true;
+  try {
+    // 카드 전체를 캡처
+    const canvas = await html2canvas(card, {
+      backgroundColor: '#ffffff',
+      scale: 2,            // 레티나 선명도
+      useCORS: true,
+      logging: false,
+    });
+    canvas.toBlob(async blob => {
+      const file = new File([blob], '월드컵내기현황.png', { type: 'image/png' });
+      // 모바일: Web Share API (OS 공유 시트 → 카카오톡)
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: '⚽ 월드컵 내기 현황' });
+        } catch(e) {
+          if (e.name !== 'AbortError') fallbackDownload(canvas);
+        }
+      } else {
+        // 데스크톱 or 미지원: 이미지 다운로드
+        fallbackDownload(canvas);
+      }
+    }, 'image/png');
+  } catch(e) {
+    alert('캡처 실패: ' + e.message);
+  } finally {
+    btn.textContent = '📸 캡처 공유';
+    btn.disabled = false;
+  }
+}
+
+function fallbackDownload(canvas) {
+  const a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = '월드컵내기현황.png';
+  a.click();
 }
 
 /* ===== AI PROGRESS ===== */
