@@ -107,23 +107,39 @@
   <h1>⚽ 2026 FIFA 월드컵 AI 예측 &amp; 내기</h1>
 </nav>
 
+<!-- 법적 고지 배너 -->
+<div id="disclaimer-banner" style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-bottom:3px solid #f39c12;padding:14px 20px;font-size:.82rem;line-height:1.6;color:#ddd;position:relative">
+  <div style="max-width:860px;margin:0 auto">
+    <div style="font-weight:800;color:#f39c12;font-size:.9rem;margin-bottom:6px">⚠️ 이용 전 반드시 읽어주세요 — 오락용 포인트 내기 서비스</div>
+    <ul style="margin:0;padding-left:18px;color:#ccc">
+      <li>본 서비스는 <strong style="color:#fff">실제 금전 거래가 전혀 없는</strong> 순수 오락·친목 목적의 포인트 게임입니다.</li>
+      <li>"포인트(P)"는 가상의 점수이며 현금·상품·재산적 가치와 <strong style="color:#fff">일절 교환되지 않습니다.</strong></li>
+      <li>스코어 예측 및 참여 여부는 <strong style="color:#fff">참가자 각자의 자유 의사와 판단에 따릅니다.</strong> 강제·강요 없이 즐기세요.</li>
+      <li>본 페이지 운영자·회사는 참가자 간 발생하는 어떠한 분쟁·손해에도 법적 책임을 지지 않습니다.</li>
+    </ul>
+    <div style="margin-top:8px;font-size:.75rem;color:#888">실제 금전이 오가는 도박 행위는 형법 제246조(도박죄) 등에 의해 처벌받을 수 있습니다. 본 서비스를 실제 금전 내기 목적으로 사용하지 마세요.</div>
+  </div>
+  <button onclick="document.getElementById('disclaimer-banner').style.display='none'" style="position:absolute;top:10px;right:14px;background:none;border:1px solid #555;color:#aaa;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.75rem">닫기</button>
+</div>
+
 <div class="container">
 
   <!-- ① 참가자 -->
   <div class="card">
     <div class="card-title">👥 내기 참가자 등록</div>
-    <p style="font-size:.8rem;color:#888;margin-bottom:12px">경기당 내기 금액을 설정하세요. 각자 스코어를 예측하고 가장 정확한 사람이 판돈 전체를 가져갑니다.</p>
+    <p style="font-size:.8rem;color:#888;margin-bottom:12px">경기당 포인트를 설정하세요. 각자 스코어를 예측하고 가장 정확한 사람이 포인트를 가져갑니다.</p>
     <div style="display:grid;grid-template-columns:1fr 150px auto;gap:8px;align-items:end;margin-bottom:12px">
       <div>
         <label style="font-size:.75rem;color:#888;display:block;margin-bottom:3px">이름</label>
         <input type="text" id="p-name" placeholder="홍길동" style="width:100%" />
       </div>
       <div>
-        <label style="font-size:.75rem;color:#888;display:block;margin-bottom:3px">경기당 내기 금액 (원)</label>
-        <input type="number" id="p-bet" placeholder="10000" min="0" step="1000" style="width:100%" />
+        <label style="font-size:.75rem;color:#888;display:block;margin-bottom:3px">경기당 포인트</label>
+        <input type="number" id="p-bet" placeholder="100" min="0" step="10" style="width:100%" />
       </div>
       <button class="btn" onclick="addParticipant()" style="height:38px;margin:0">추가</button>
     </div>
+    <p style="font-size:.72rem;color:#f39c12;background:#2d2200;border-radius:6px;padding:7px 10px;margin-bottom:10px">🎮 포인트(P)는 가상 점수입니다. 실제 금전 거래 없이 오락 목적으로만 사용하세요. 참여는 자유 의사로 결정하세요.</p>
     <div id="participants-list">
       <p style="text-align:center;color:#ccc;font-size:.85rem;padding:10px">아직 참가자가 없습니다</p>
     </div>
@@ -169,7 +185,7 @@
       <button class="btn sm" id="share-settlement-btn" onclick="shareSettlement()" style="margin-left:auto;background:#fee500;color:#3c1e1e;font-size:.78rem">📸 캡처 공유</button>
     </div>
     <p style="font-size:.8rem;color:#888;margin-bottom:12px">
-      🎯 정확한 스코어 → 그 경기 판돈 + 누적 적립금 전액 수령 &nbsp;|&nbsp; 아무도 못 맞추면 → 판돈은 적립되어 다음에 정확히 맞춘 사람에게 이전
+      🎯 정확한 스코어 → 그 경기 포인트 + 누적 포인트 전액 수령 &nbsp;|&nbsp; 아무도 못 맞추면 → 포인트는 적립되어 다음에 정확히 맞춘 사람에게 이전
     </p>
     <div id="settlement">
       <p style="text-align:center;color:#ccc;font-size:.85rem;padding:12px">스코어를 입력하고 저장하면 자동 계산됩니다</p>
@@ -1031,16 +1047,16 @@ function matchCardHTML(m, settlement) {
         if (isExactWinner) {
           const share = (tl.payout || pot) / exact.length;
           const net = share - p.bet;
-          badge = `<span class="badge-exact result-badge">🎯 정확!<br>+${Math.round(net).toLocaleString()}원</span>`;
+          badge = `<span class="badge-exact result-badge">🎯 정확!<br>+${Math.round(net).toLocaleString()}P</span>`;
         } else {
-          badge = `<span class="badge-lose result-badge">❌ -${p.bet.toLocaleString()}원</span>`;
+          badge = `<span class="badge-lose result-badge">❌ -${p.bet.toLocaleString()}P</span>`;
         }
       } else if (done) {
         badge = `<span class="badge-none result-badge">미입력</span>`;
       }
 
       betRowsHTML += `<div class="bet-row">
-        <div class="bet-pname">👤 ${p.name}<br><span class="bet-amount">${p.bet.toLocaleString()}원/경기</span></div>
+        <div class="bet-pname">👤 ${p.name}<br><span class="bet-amount">${p.bet.toLocaleString()}P/경기</span></div>
         <div class="score-cell">
           <input class="s-inp" type="number" min="0" max="20"
             value="${hVal}" placeholder="0"
@@ -1060,17 +1076,17 @@ function matchCardHTML(m, settlement) {
     if (!done) {
       const potAll = participants.reduce((s,p) => s + p.bet, 0);
       const jackpotTxt = tl.rolloverBefore > 0
-        ? `<span class="jackpot-info">· 적립금 ${tl.rolloverBefore.toLocaleString()}원 (맞히면 합산 수령)</span>` : '';
+        ? `<span class="jackpot-info">· 적립 ${tl.rolloverBefore.toLocaleString()}P (맞히면 합산 수령)</span>` : '';
       betRowsHTML += `<div class="save-row">
-        <span class="pot-info">총 판돈: <strong>${potAll.toLocaleString()}원</strong>${jackpotTxt}</span>
+        <span class="pot-info">총 포인트: <strong>${potAll.toLocaleString()}P</strong>${jackpotTxt}</span>
         <button class="btn sm green" onclick="saveMatchPicks('${m.idEvent}')">💾 저장</button>
       </div>`;
     } else if (entered.length) {
       if (exact.length) {
         const share = Math.round((tl.payout || pot) / exact.length);
-        betRowsHTML += `<div class="winner-box">🏆 <strong>${exact.map(p=>p.name).join(', ')}</strong> 정확한 스코어 적중 — 판돈 ${pot.toLocaleString()}원${tl.rolloverBefore ? ` + 적립금 ${tl.rolloverBefore.toLocaleString()}원` : ''} = 각 ${share.toLocaleString()}원 수령</div>`;
+        betRowsHTML += `<div class="winner-box">🏆 <strong>${exact.map(p=>p.name).join(', ')}</strong> 정확한 스코어 적중 — ${pot.toLocaleString()}P${tl.rolloverBefore ? ` + 적립 ${tl.rolloverBefore.toLocaleString()}P` : ''} = 각 ${share.toLocaleString()}P 수령</div>`;
       } else {
-        betRowsHTML += `<div class="rollover-box">📦 아무도 정확한 스코어를 맞추지 못해 이번 판돈 ${pot.toLocaleString()}원은 적립금으로 이동했습니다 — 누적 적립금 <strong>${tl.rolloverAfter.toLocaleString()}원</strong> (다음에 정확히 맞춘 사람이 전부 수령)</div>`;
+        betRowsHTML += `<div class="rollover-box">📦 아무도 정확한 스코어를 맞추지 못해 이번 ${pot.toLocaleString()}P는 적립됩니다 — 누적 적립 <strong>${tl.rolloverAfter.toLocaleString()}P</strong> (다음에 정확히 맞춘 사람이 전부 수령)</div>`;
       }
     }
   }
@@ -1153,7 +1169,7 @@ function addParticipant() {
   const name = document.getElementById('p-name').value.trim();
   const bet  = +document.getElementById('p-bet').value;
   if (!name)    { alert('이름을 입력하세요'); return; }
-  if (bet <= 0) { alert('내기 금액을 입력하세요'); return; }
+  if (bet <= 0) { alert('경기당 포인트를 입력하세요'); return; }
   if (participants.some(p => p.name === name)) { alert('이미 있는 이름입니다'); return; }
   participants.push({ id: Date.now().toString(36), name, bet });
   localStorage.setItem(PARTS_KEY, JSON.stringify(participants));
@@ -1181,7 +1197,7 @@ function renderParticipants() {
   el.innerHTML = participants.map(p => `
     <div class="p-row">
       <span style="flex:1;font-weight:700">👤 ${p.name}</span>
-      <span style="color:#888;font-size:.82rem">💰 ${p.bet.toLocaleString()}원/경기</span>
+      <span style="color:#888;font-size:.82rem">💰 ${p.bet.toLocaleString()}P/경기</span>
       <button class="btn sm red" onclick="removeParticipant('${p.id}')" style="margin:0;margin-left:8px">삭제</button>
     </div>`).join('');
 }
@@ -1202,16 +1218,16 @@ function updateSettlement() {
 
   let html = '';
   if (finalRollover > 0) {
-    html += `<div class="jackpot-banner">💰 현재 누적 적립금 <span style="font-size:1.05em">${finalRollover.toLocaleString()}원</span> — 다음에 스코어를 정확히 맞춘 사람이 전부 가져갑니다</div>`;
+    html += `<div class="jackpot-banner">💰 현재 누적 적립 <span style="font-size:1.05em">${finalRollover.toLocaleString()}P</span> — 다음에 스코어를 정확히 맞춘 사람이 전부 가져갑니다</div>`;
   }
 
   html += ranked.map((p,i) => {
     const net = balance[p.id];
     const netStr = net > 0
-      ? `<span style="color:var(--green);font-weight:800">+${Math.round(net).toLocaleString()}원</span>`
+      ? `<span style="color:var(--green);font-weight:800">+${Math.round(net).toLocaleString()}P</span>`
       : net < 0
-      ? `<span style="color:var(--red);font-weight:800">${Math.round(net).toLocaleString()}원</span>`
-      : `<span style="color:#aaa">±0원</span>`;
+      ? `<span style="color:var(--red);font-weight:800">${Math.round(net).toLocaleString()}P</span>`
+      : `<span style="color:#aaa">±0P</span>`;
     const predCount = Object.keys(picks[p.id]||{}).filter(mid =>
       picks[p.id][mid]?.h !== undefined && picks[p.id][mid]?.a !== undefined
     ).length;
@@ -1234,7 +1250,7 @@ function updateSettlement() {
     let i=0,j=0;
     while(i<n2.length && j<p2.length){
       const amt = Math.min(n2[i].amt, p2[j].amt);
-      if(amt >= 1) html += `<div class="txn"><span style="font-weight:700">${n2[i].name}</span><span class="txn-arrow">→</span><span style="font-weight:700">${p2[j].name}</span><span class="txn-amt">${Math.round(amt).toLocaleString()}원</span></div>`;
+      if(amt >= 1) html += `<div class="txn"><span style="font-weight:700">${n2[i].name}</span><span class="txn-arrow">→</span><span style="font-weight:700">${p2[j].name}</span><span class="txn-amt">${Math.round(amt).toLocaleString()}P</span></div>`;
       n2[i].amt -= amt; p2[j].amt -= amt;
       if(n2[i].amt < 1) i++; if(p2[j].amt < 1) j++;
     }
