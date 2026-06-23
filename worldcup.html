@@ -70,7 +70,9 @@
     .save-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
     .pot-info{font-size:.75rem;color:#999}
     .pot-info strong{color:#555}
+    .jackpot-info{font-size:.75rem;color:#b8860b;font-weight:700}
     .winner-box{background:#f0fff4;border-radius:7px;padding:7px 10px;font-size:.8rem;color:#1e8449;margin-top:4px}
+    .rollover-box{background:#fff8ec;border:1px solid #ffe6b8;border-radius:7px;padding:7px 10px;font-size:.8rem;color:#a8710a;margin-top:4px}
     .p-row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid #f0f0f0}
     .p-row:last-child{border-bottom:none}
     .lb-row{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid #f5f5f5}
@@ -81,6 +83,7 @@
     .txn:last-child{border-bottom:none}
     .txn-arrow{color:var(--red);font-weight:800}
     .txn-amt{margin-left:auto;font-weight:700;color:var(--green)}
+    .jackpot-banner{background:linear-gradient(135deg,#fdf0d5,#fde8b8);border:1px solid #f3d089;border-radius:9px;padding:10px 14px;font-size:.85rem;color:#8a5d00;margin-bottom:12px;font-weight:700;display:flex;align-items:center;gap:8px}
 
     /* Group standings */
     .stg-wrap{overflow-x:auto;margin-bottom:14px}
@@ -163,7 +166,7 @@
   <div class="card">
     <div class="card-title">🏆 종합 순위 &amp; 정산</div>
     <p style="font-size:.8rem;color:#888;margin-bottom:12px">
-      🎯 정확한 스코어 → 판돈 전액 수령 &nbsp;|&nbsp; 아무도 정확히 못 맞추면 → 가장 근접한 사람이 수령
+      🎯 정확한 스코어 → 그 경기 판돈 + 누적 적립금 전액 수령 &nbsp;|&nbsp; 아무도 못 맞추면 → 판돈은 적립되어 다음에 정확히 맞춘 사람에게 이전
     </p>
     <div id="settlement">
       <p style="text-align:center;color:#ccc;font-size:.85rem;padding:12px">스코어를 입력하고 저장하면 자동 계산됩니다</p>
@@ -185,6 +188,41 @@ const teamCache  = {};
 let filterRound  = 'upcoming';
 let autoTimer    = null;
 let wcLeagueId   = null;
+let settlementCache = null;
+
+/* ===== DATE HELPERS ===== */
+const todayStr = () => new Date().toISOString().slice(0, 10);
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function dateRangeArray(start, end) {
+  const out = [];
+  let d = new Date(start + 'T00:00:00Z');
+  const last = new Date(end + 'T00:00:00Z');
+  while (d <= last) { out.push(d.toISOString().slice(0, 10)); d.setUTCDate(d.getUTCDate() + 1); }
+  return out;
+}
+
+/* ===== 일일(day-level) 캐시 — 팀/AI 예측 캐시는 당일 기준으로 재사용 =====
+   TheSportsDB 무료 키는 호출 결과 개수 자체를 1~15개로 강하게 제한하기 때문에
+   (eventsseason 15개, eventsnextleague/eventspastleague 각 1개) 시즌 전체나 다음/이전
+   경기 엔드포인트로는 104경기 일정을 절대 받아올 수 없다. 대신 날짜별 조회
+   (eventsday.php, 하루 최대 3경기)를 대회 전체 기간에 걸쳐 반복 호출해 모은다. */
+function loadPersistedCache(key) {
+  try {
+    const obj = JSON.parse(localStorage.getItem(key) || '{}');
+    return obj.date === todayStr() ? (obj.data || {}) : {};
+  } catch { return {}; }
+}
+function savePersistedCache(key, data) {
+  try { localStorage.setItem(key, JSON.stringify({ date: todayStr(), data })); } catch {}
+}
+const TEAM_CACHE_KEY = 'wc2026_team_cache_v1';
+const AI_CACHE_KEY   = 'wc2026_ai_cache_v1';
+Object.assign(teamCache, loadPersistedCache(TEAM_CACHE_KEY));
+Object.assign(aiCache,   loadPersistedCache(AI_CACHE_KEY));
 
 /* ===== FLAGS ===== */
 const F = {
@@ -207,18 +245,85 @@ const F = {
   'Czech Republic':'🇨🇿','Slovakia':'🇸🇰','Hungary':'🇭🇺','Romania':'🇷🇴',
   'Austria':'🇦🇹','Greece':'🇬🇷','Bulgaria':'🇧🇬','Albania':'🇦🇱',
   'Iceland':'🇮🇸','Norway':'🇳🇴','Sweden':'🇸🇪','Finland':'🇫🇮',
+  /* 2026 본선 확정 48개국 보강 (TheSportsDB가 실제 사용하는 영문 표기 기준) */
+  'USA':'🇺🇸','Paraguay':'🇵🇾','Bosnia-Herzegovina':'🇧🇦','Bosnia and Herzegovina':'🇧🇦',
+  'Curaçao':'🇨🇼','Curacao':'🇨🇼','Cape Verde':'🇨🇻',
+  'DR Congo':'🇨🇩','Congo DR':'🇨🇩','Democratic Republic of the Congo':'🇨🇩','DR Congo (Congo DR)':'🇨🇩',
 };
 const flag = n => F[n] || '🏳️';
+
+/* ===== 한글 국가명 (2026 본선 확정 48개국 / 12개조) =====
+   TheSportsDB 응답의 영문 팀명을 키로 사용 — 조 배정은 실측 데이터(eventsday.php의 strGroup)와
+   교차 확인된 확정 명단 기준 */
+const KOR_NAME = {
+  // Group A
+  'Mexico':'멕시코','South Africa':'남아프리카공화국','South Korea':'대한민국','Czech Republic':'체코',
+  // Group B
+  'Canada':'캐나다','Bosnia-Herzegovina':'보스니아 헤르체고비나','Bosnia and Herzegovina':'보스니아 헤르체고비나',
+  'Qatar':'카타르','Switzerland':'스위스',
+  // Group C
+  'Brazil':'브라질','Morocco':'모로코','Haiti':'아이티','Scotland':'스코틀랜드',
+  // Group D
+  'USA':'미국','United States':'미국','Paraguay':'파라과이','Australia':'호주','Turkey':'튀르키예',
+  // Group E
+  'Germany':'독일','Curaçao':'퀴라소','Curacao':'퀴라소','Ivory Coast':'코트디부아르',"Cote d'Ivoire":'코트디부아르','Ecuador':'에콰도르',
+  // Group F
+  'Netherlands':'네덜란드','Japan':'일본','Sweden':'스웨덴','Tunisia':'튀니지',
+  // Group G
+  'Belgium':'벨기에','Egypt':'이집트','Iran':'이란','New Zealand':'뉴질랜드',
+  // Group H
+  'Saudi Arabia':'사우디아라비아','Uruguay':'우루과이','Spain':'스페인','Cape Verde':'카보베르데',
+  // Group I
+  'France':'프랑스','Senegal':'세네갈','Iraq':'이라크','Norway':'노르웨이',
+  // Group J
+  'Argentina':'아르헨티나','Algeria':'알제리','Austria':'오스트리아','Jordan':'요르단',
+  // Group K
+  'Portugal':'포르투갈','DR Congo':'콩고민주공화국','Congo DR':'콩고민주공화국','Democratic Republic of the Congo':'콩고민주공화국',
+  'Uzbekistan':'우즈베키스탄','Colombia':'콜롬비아',
+  // Group L
+  'England':'잉글랜드','Croatia':'크로아티아','Ghana':'가나','Panama':'파나마',
+};
+const kor = n => KOR_NAME[n] || n || '';
 
 /* 팀명 축약 — 두 단어 이상인 경우 "New Zealand" → "NZL" 식으로 */
 const ABBR = {
   'New Zealand':'NZL','United States':'USA','South Korea':'KOR',
   'Saudi Arabia':'KSA','Costa Rica':'CRC','South Africa':'RSA',
   'Trinidad and Tobago':'T&T','El Salvador':'SLV','Ivory Coast':'CIV',
-  "Cote d'Ivoire":'CIV','Congo DR':'DRC','Czech Republic':'CZE',
-  'Bosnia and Herzegovina':'BiH',
+  "Cote d'Ivoire":'CIV','Congo DR':'DRC','DR Congo':'DRC','Czech Republic':'CZE',
+  'Bosnia and Herzegovina':'BiH','Bosnia-Herzegovina':'BiH','Cape Verde':'CPV',
 };
 const abbr = n => ABBR[n] || (n||'').split(' ')[0];
+
+/* ===== ROBUST TheSportsDB FETCH =====
+   브라우저에서 thesportsdb.com 직접 호출이 CORS/일시 차단으로 실패하는 경우가 있어
+   1) 직접 호출 시도 → 2) 실패 시 공개 CORS 프록시로 재시도.
+   또한 무료 키(분당 약 30회 제한)를 보호하기 위해 호출을 살짝 직렬화한다. */
+const TSDB_PROXY = 'https://api.allorigins.win/raw?url=';
+let _tsdbQueue = Promise.resolve();
+function tsdbFetch(url) {
+  // 무료 키는 분당 30회 제한 → 호출 간 2.1초 간격을 둬서 절대 초과하지 않게 직렬화
+  const job = () => new Promise(res => setTimeout(res, 2100)).then(() => tsdbFetchOnce(url));
+  const result = _tsdbQueue.then(job, job);
+  _tsdbQueue = result.catch(() => {});
+  return result;
+}
+async function tsdbFetchOnce(url) {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('http ' + r.status);
+    return await r.json();
+  } catch (e1) {
+    try {
+      const r2 = await fetch(TSDB_PROXY + encodeURIComponent(url));
+      if (!r2.ok) throw new Error('proxy http ' + r2.status);
+      return await r2.json();
+    } catch (e2) {
+      console.warn('[TheSportsDB] 호출 실패:', url, e2);
+      return null;
+    }
+  }
+}
 
 /* ===== POISSON AI ===== */
 function poisson(k, λ) {
@@ -227,37 +332,38 @@ function poisson(k, λ) {
   return r;
 }
 
-async function fetchStrength(teamName) {
+/* teamId는 경기 데이터(idHomeTeam/idAwayTeam)에서 이미 알고 있으므로 그대로 사용한다.
+   주의: 무료 키에서는 searchteams.php가 "Arsenal" 외 다른 팀명은 전부 빈 응답을 반환해
+   이름으로 팀ID를 검색하는 방식 자체가 동작하지 않는다 — 그래서 ID 직접 전달 방식으로 변경. */
+async function fetchStrength(teamName, teamId) {
   if (teamCache[teamName]) return teamCache[teamName];
-  const s = await fetch(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(teamName)}`)
-    .then(r => r.json()).catch(() => null);
-  const team = s?.teams?.[0];
-  if (!team) return teamCache[teamName] = { scored: 1.2, conceded: 1.2, id: null };
-  const e = await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id=${team.idTeam}`)
-    .then(r => r.json()).catch(() => null);
+  if (!teamId) return teamCache[teamName] = { scored: 1.2, conceded: 1.2, id: null };
+  const e = await tsdbFetch(`https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id=${teamId}`);
   const events = (e?.results || [])
     .filter(ev => ev.intHomeScore != null && ev.intAwayScore != null)
     .slice(0, 10);
-  if (!events.length) return teamCache[teamName] = { scored: 1.2, conceded: 1.2, id: team.idTeam };
+  if (!events.length) return teamCache[teamName] = { scored: 1.2, conceded: 1.2, id: teamId };
   let scored = 0, conceded = 0;
   events.forEach(ev => {
-    const isHome = String(ev.idHomeTeam) === String(team.idTeam);
+    const isHome = String(ev.idHomeTeam) === String(teamId);
     scored   += isHome ? +ev.intHomeScore : +ev.intAwayScore;
     conceded += isHome ? +ev.intAwayScore : +ev.intHomeScore;
   });
   const n = events.length;
-  return teamCache[teamName] = {
-    id: team.idTeam,
+  const result = {
+    id: teamId,
     scored:   Math.max(0.3, Math.min(3.0, scored   / n)),
     conceded: Math.max(0.3, Math.min(3.0, conceded / n))
   };
+  teamCache[teamName] = result;
+  savePersistedCache(TEAM_CACHE_KEY, teamCache);
+  return result;
 }
 
 /* 상대 전적(H2H): 두 팀의 맞대결 평균 득점 반환 */
 async function fetchH2H(id1, id2) {
   if (!id1 || !id2) return null;
-  const r = await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsh2h.php?id1=${id1}&id2=${id2}`)
-    .then(r => r.json()).catch(() => null);
+  const r = await tsdbFetch(`https://www.thesportsdb.com/api/v1/json/3/eventsh2h.php?id1=${id1}&id2=${id2}`);
   const events = (r?.results || [])
     .filter(ev => ev.intHomeScore != null && ev.intAwayScore != null)
     .slice(0, 10);
@@ -274,9 +380,9 @@ async function fetchH2H(id1, id2) {
   return { h_scored: s1 / n, a_scored: c1 / n, count: n };
 }
 
-async function aiPredict(matchId, home, away) {
+async function aiPredict(matchId, home, away, homeId, awayId) {
   if (aiCache[matchId]) return aiCache[matchId];
-  const [hs, as_] = await Promise.all([fetchStrength(home), fetchStrength(away)]);
+  const [hs, as_] = await Promise.all([fetchStrength(home, homeId), fetchStrength(away, awayId)]);
   const h2h = await fetchH2H(hs.id, as_.id);
 
   // 단순 평균법: (자팀 평균 득점 + 상대팀 평균 실점) / 2
@@ -311,72 +417,237 @@ async function aiPredict(matchId, home, away) {
     h2hCount: h2h?.count || 0
   };
   aiCache[matchId] = result;
+  savePersistedCache(AI_CACHE_KEY, aiCache);
   return result;
 }
 
 /* ===== FIND FIFA WORLD CUP LEAGUE ===== */
+const WC_LEAGUE_CACHE_KEY = 'wc2026_league_id_cache';
+
 async function findWCLeagueId() {
+  // 0) 로컬에 캐시된 값이 있으면 우선 사용 (불필요한 API 호출 절약)
+  const cached = +localStorage.getItem(WC_LEAGUE_CACHE_KEY);
+  if (cached) return cached;
+
   const candidates = [4429, 4514, 4501, 4480];
   for (const id of candidates) {
-    const r = await fetch(`https://www.thesportsdb.com/api/v1/json/3/lookupleague.php?id=${id}`)
-      .then(r => r.json()).catch(() => null);
+    const r = await tsdbFetch(`https://www.thesportsdb.com/api/v1/json/3/lookupleague.php?id=${id}`);
     const name = r?.leagues?.[0]?.strLeague || '';
-    if (name.toLowerCase().includes('world cup') && !name.toLowerCase().includes('women')) return id;
+    if (name.toLowerCase().includes('world cup') && !name.toLowerCase().includes('women')) {
+      localStorage.setItem(WC_LEAGUE_CACHE_KEY, id);
+      return id;
+    }
   }
-  const search = await fetch('https://www.thesportsdb.com/api/v1/json/3/searchleagues.php?c=International&s=Soccer')
-    .then(r => r.json()).catch(() => null);
-  const wc = (search?.leagues || []).find(l =>
+  // 후보 ID가 전부 실패하면 전체 축구 리그 목록에서 검색 (느리지만 안전한 폴백)
+  const search = await tsdbFetch('https://www.thesportsdb.com/api/v1/json/3/search_all_leagues.php?s=Soccer');
+  const list = search?.countries || search?.leagues || [];
+  const wc = list.find(l =>
     l.strLeague?.toLowerCase().includes('world cup') && !l.strLeague?.toLowerCase().includes('women')
   );
-  return wc ? +wc.idLeague : null;
+  if (wc) {
+    localStorage.setItem(WC_LEAGUE_CACHE_KEY, wc.idLeague);
+    return +wc.idLeague;
+  }
+  return null;
 }
 
-/* ===== FETCH ALL MATCHES ===== */
-async function fetchAllMatches(leagueId) {
-  const [season, past, nxt] = await Promise.all([
-    fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsseason.php?id=${leagueId}&s=2026`).then(r=>r.json()).catch(()=>null),
-    fetch(`https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=${leagueId}`).then(r=>r.json()).catch(()=>null),
-    fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsnextleague.php?id=${leagueId}`).then(r=>r.json()).catch(()=>null),
-  ]);
-  const allMap = new Map();
-  [...(season?.events||[]), ...(past?.events||[]), ...(nxt?.events||[])].forEach(e => {
-    if (e.dateEvent?.startsWith('2026')) allMap.set(e.idEvent, e);
+/* ===== 정적 임베디드 조별리그 일정 (사전 수집 데이터) =====
+   TheSportsDB 무료 키는 eventsday.php 호출 1건당 결과를 최대 3경기로 제한한다 (실측 확인:
+   18일 연속 조회 중 16일이 정확히 3경기씩만 반환됨). 그래서 매 방문자가 39일치를 실시간으로
+   순회하면 1~2분이 걸리고, 그래도 일부 경기는 여전히 누락된다. 이를 해결하기 위해 조별리그
+   일정/스코어를 미리 수집해 아래에 내장하고, 첫 로딩은 네트워크 호출 없이 이 데이터로 즉시
+   그려준다. 16강 이후 토너먼트 대진은 조별리그 결과가 확정돼야 정해지므로(현재 시점엔 아직
+   미정) 정적으로 내장할 수 없고, 기존 실시간 조회로 보완한다. */
+const STATIC_MATCHES = [
+  {idEvent:'2391728',dateEvent:'2026-06-11',strTime:'19:00:00',strGroup:'A',strHomeTeam:'Mexico',strAwayTeam:'South Africa',idHomeTeam:'134497',idAwayTeam:'136482',intHomeScore:'2',intAwayScore:'0',intRound:'1'},
+  {idEvent:'2461103',dateEvent:'2026-06-12',strTime:'02:00:00',strGroup:'A',strHomeTeam:'South Korea',strAwayTeam:'Czech Republic',idHomeTeam:'134517',idAwayTeam:'133904',intHomeScore:'2',intAwayScore:'1',intRound:'1'},
+  {idEvent:'2461104',dateEvent:'2026-06-12',strTime:'19:00:00',strGroup:'B',strHomeTeam:'Canada',strAwayTeam:'Bosnia-Herzegovina',idHomeTeam:'140073',idAwayTeam:'134510',intHomeScore:'1',intAwayScore:'1',intRound:'1'},
+  {idEvent:'2391729',dateEvent:'2026-06-13',strTime:'01:00:00',strGroup:'D',strHomeTeam:'USA',strAwayTeam:'Paraguay',idHomeTeam:'134514',idAwayTeam:'136471',intHomeScore:'4',intAwayScore:'1',intRound:'1'},
+  {idEvent:'2391730',dateEvent:'2026-06-13',strTime:'22:00:00',strGroup:'C',strHomeTeam:'Brazil',strAwayTeam:'Morocco',idHomeTeam:'134496',idAwayTeam:'136139',intHomeScore:'1',intAwayScore:'1',intRound:'1'},
+  {idEvent:'2391732',dateEvent:'2026-06-13',strTime:'19:00:00',strGroup:'B',strHomeTeam:'Qatar',strAwayTeam:'Switzerland',idHomeTeam:'136472',idAwayTeam:'134506',intHomeScore:null,intAwayScore:null,intRound:'1'},
+  {idEvent:'2391731',dateEvent:'2026-06-14',strTime:'01:00:00',strGroup:'C',strHomeTeam:'Haiti',strAwayTeam:'Scotland',idHomeTeam:'140175',idAwayTeam:'136450',intHomeScore:null,intAwayScore:null,intRound:'1'},
+  {idEvent:'2391733',dateEvent:'2026-06-14',strTime:'17:00:00',strGroup:'E',strHomeTeam:'Germany',strAwayTeam:'Curaçao',idHomeTeam:'133907',idAwayTeam:'140271',intHomeScore:null,intAwayScore:null,intRound:'1'},
+  {idEvent:'2391734',dateEvent:'2026-06-14',strTime:'23:00:00',strGroup:'E',strHomeTeam:'Ivory Coast',strAwayTeam:'Ecuador',idHomeTeam:'134502',idAwayTeam:'134507',intHomeScore:null,intAwayScore:null,intRound:'1'},
+  {idEvent:'2391736',dateEvent:'2026-06-15',strTime:'19:00:00',strGroup:'G',strHomeTeam:'Belgium',strAwayTeam:'Egypt',idHomeTeam:'134515',idAwayTeam:'136138',intHomeScore:null,intAwayScore:null,intRound:'1'},
+  {idEvent:'2391738',dateEvent:'2026-06-15',strTime:'22:00:00',strGroup:'H',strHomeTeam:'Saudi Arabia',strAwayTeam:'Uruguay',idHomeTeam:'136137',idAwayTeam:'134504',intHomeScore:null,intAwayScore:null,intRound:'1'},
+  {idEvent:'2391739',dateEvent:'2026-06-15',strTime:'16:00:00',strGroup:'H',strHomeTeam:'Spain',strAwayTeam:'Cape Verde',idHomeTeam:'133909',idAwayTeam:'136477',intHomeScore:null,intAwayScore:null,intRound:'1'},
+  {idEvent:'2391737',dateEvent:'2026-06-16',strTime:'01:00:00',strGroup:'G',strHomeTeam:'Iran',strAwayTeam:'New Zealand',idHomeTeam:'134511',idAwayTeam:'137449',intHomeScore:'2',intAwayScore:'2',intRound:'1'},
+  {idEvent:'2391742',dateEvent:'2026-06-16',strTime:'19:00:00',strGroup:'I',strHomeTeam:'France',strAwayTeam:'Senegal',idHomeTeam:'133913',idAwayTeam:'136143',intHomeScore:'3',intAwayScore:'1',intRound:'1'},
+  {idEvent:'2461107',dateEvent:'2026-06-16',strTime:'22:00:00',strGroup:'I',strHomeTeam:'Iraq',strAwayTeam:'Norway',idHomeTeam:'140148',idAwayTeam:'136516',intHomeScore:'1',intAwayScore:'4',intRound:'1'},
+  {idEvent:'2391740',dateEvent:'2026-06-17',strTime:'01:00:00',strGroup:'J',strHomeTeam:'Argentina',strAwayTeam:'Algeria',idHomeTeam:'134509',idAwayTeam:'134516',intHomeScore:null,intAwayScore:null,intRound:'1'},
+  {idEvent:'2391741',dateEvent:'2026-06-17',strTime:'04:00:00',strGroup:'J',strHomeTeam:'Austria',strAwayTeam:'Jordan',idHomeTeam:'135986',idAwayTeam:'140145',intHomeScore:null,intAwayScore:null,intRound:'1'},
+  {idEvent:'2391743',dateEvent:'2026-06-17',strTime:'20:00:00',strGroup:'L',strHomeTeam:'England',strAwayTeam:'Croatia',idHomeTeam:'133914',idAwayTeam:'133912',intHomeScore:null,intAwayScore:null,intRound:'1'},
+  {idEvent:'2391745',dateEvent:'2026-06-18',strTime:'02:00:00',strGroup:'K',strHomeTeam:'Uzbekistan',strAwayTeam:'Colombia',idHomeTeam:'140151',idAwayTeam:'134501',intHomeScore:null,intAwayScore:null,intRound:'1'},
+  {idEvent:'2391746',dateEvent:'2026-06-18',strTime:'22:00:00',strGroup:'B',strHomeTeam:'Canada',strAwayTeam:'Qatar',idHomeTeam:'140073',idAwayTeam:'136472',intHomeScore:null,intAwayScore:null,intRound:'2'},
+  {idEvent:'2461109',dateEvent:'2026-06-18',strTime:'16:00:00',strGroup:'A',strHomeTeam:'Czech Republic',strAwayTeam:'South Africa',idHomeTeam:'133904',idAwayTeam:'136482',intHomeScore:null,intAwayScore:null,intRound:'2'},
+  {idEvent:'2391747',dateEvent:'2026-06-19',strTime:'01:00:00',strGroup:'A',strHomeTeam:'Mexico',strAwayTeam:'South Korea',idHomeTeam:'134497',idAwayTeam:'134517',intHomeScore:'1',intAwayScore:'0',intRound:'2'},
+  {idEvent:'2391749',dateEvent:'2026-06-19',strTime:'22:00:00',strGroup:'C',strHomeTeam:'Scotland',strAwayTeam:'Morocco',idHomeTeam:'136450',idAwayTeam:'136139',intHomeScore:null,intAwayScore:null,intRound:'2'},
+  {idEvent:'2391750',dateEvent:'2026-06-19',strTime:'19:00:00',strGroup:'D',strHomeTeam:'USA',strAwayTeam:'Australia',idHomeTeam:'134514',idAwayTeam:'134500',intHomeScore:null,intAwayScore:null,intRound:'2'},
+  {idEvent:'2391748',dateEvent:'2026-06-20',strTime:'00:30:00',strGroup:'C',strHomeTeam:'Brazil',strAwayTeam:'Haiti',idHomeTeam:'134496',idAwayTeam:'140175',intHomeScore:null,intAwayScore:null,intRound:'2'},
+  {idEvent:'2391752',dateEvent:'2026-06-20',strTime:'20:00:00',strGroup:'E',strHomeTeam:'Germany',strAwayTeam:'Ivory Coast',idHomeTeam:'133907',idAwayTeam:'134502',intHomeScore:null,intAwayScore:null,intRound:'2'},
+  {idEvent:'2461111',dateEvent:'2026-06-20',strTime:'03:00:00',strGroup:'D',strHomeTeam:'Turkey',strAwayTeam:'Paraguay',idHomeTeam:'135985',idAwayTeam:'136471',intHomeScore:null,intAwayScore:null,intRound:'2'},
+  {idEvent:'2391751',dateEvent:'2026-06-21',strTime:'00:00:00',strGroup:'E',strHomeTeam:'Ecuador',strAwayTeam:'Curaçao',idHomeTeam:'134507',idAwayTeam:'140271',intHomeScore:null,intAwayScore:null,intRound:'2'},
+  {idEvent:'2391753',dateEvent:'2026-06-21',strTime:'04:00:00',strGroup:'F',strHomeTeam:'Tunisia',strAwayTeam:'Japan',idHomeTeam:'136142',idAwayTeam:'134503',intHomeScore:null,intAwayScore:null,intRound:'2'},
+  {idEvent:'2391754',dateEvent:'2026-06-21',strTime:'19:00:00',strGroup:'G',strHomeTeam:'Belgium',strAwayTeam:'Iran',idHomeTeam:'134515',idAwayTeam:'134511',intHomeScore:null,intAwayScore:null,intRound:'2'},
+  {idEvent:'2391755',dateEvent:'2026-06-22',strTime:'01:00:00',strGroup:'G',strHomeTeam:'New Zealand',strAwayTeam:'Egypt',idHomeTeam:'137449',idAwayTeam:'136138',intHomeScore:null,intAwayScore:null,intRound:'2'},
+  {idEvent:'2391758',dateEvent:'2026-06-22',strTime:'17:00:00',strGroup:'J',strHomeTeam:'Argentina',strAwayTeam:'Austria',idHomeTeam:'134509',idAwayTeam:'135986',intHomeScore:null,intAwayScore:null,intRound:'2'},
+  {idEvent:'2461113',dateEvent:'2026-06-22',strTime:'21:00:00',strGroup:'I',strHomeTeam:'France',strAwayTeam:'Iraq',idHomeTeam:'133913',idAwayTeam:'140148',intHomeScore:null,intAwayScore:null,intRound:'2'},
+  {idEvent:'2391759',dateEvent:'2026-06-23',strTime:'03:00:00',strGroup:'J',strHomeTeam:'Jordan',strAwayTeam:'Algeria',idHomeTeam:'140145',idAwayTeam:'134516',intHomeScore:null,intAwayScore:null,intRound:'2'},
+  {idEvent:'2391760',dateEvent:'2026-06-23',strTime:'00:00:00',strGroup:'I',strHomeTeam:'Norway',strAwayTeam:'Senegal',idHomeTeam:'136516',idAwayTeam:'136143',intHomeScore:null,intAwayScore:null,intRound:'2'},
+  {idEvent:'2391761',dateEvent:'2026-06-23',strTime:'20:00:00',strGroup:'L',strHomeTeam:'England',strAwayTeam:'Ghana',idHomeTeam:'133914',idAwayTeam:'134513',intHomeScore:null,intAwayScore:null,intRound:'2'},
+  {idEvent:'2391764',dateEvent:'2026-06-24',strTime:'22:00:00',strGroup:'C',strHomeTeam:'Morocco',strAwayTeam:'Haiti',idHomeTeam:'136139',idAwayTeam:'140175',intHomeScore:null,intAwayScore:null,intRound:'3'},
+  {idEvent:'2391765',dateEvent:'2026-06-24',strTime:'22:00:00',strGroup:'C',strHomeTeam:'Scotland',strAwayTeam:'Brazil',idHomeTeam:'136450',idAwayTeam:'134496',intHomeScore:null,intAwayScore:null,intRound:'3'},
+  {idEvent:'2391767',dateEvent:'2026-06-24',strTime:'19:00:00',strGroup:'B',strHomeTeam:'Switzerland',strAwayTeam:'Canada',idHomeTeam:'134506',idAwayTeam:'140073',intHomeScore:null,intAwayScore:null,intRound:'3'},
+  {idEvent:'2391766',dateEvent:'2026-06-25',strTime:'01:00:00',strGroup:'A',strHomeTeam:'South Africa',strAwayTeam:'South Korea',idHomeTeam:'136482',idAwayTeam:'134517',intHomeScore:null,intAwayScore:null,intRound:'3'},
+  {idEvent:'2391768',dateEvent:'2026-06-25',strTime:'20:00:00',strGroup:'E',strHomeTeam:'Curaçao',strAwayTeam:'Ivory Coast',idHomeTeam:'140271',idAwayTeam:'134502',intHomeScore:null,intAwayScore:null,intRound:'3'},
+  {idEvent:'2391769',dateEvent:'2026-06-25',strTime:'20:00:00',strGroup:'E',strHomeTeam:'Ecuador',strAwayTeam:'Germany',idHomeTeam:'134507',idAwayTeam:'133907',intHomeScore:null,intAwayScore:null,intRound:'3'},
+  {idEvent:'2391770',dateEvent:'2026-06-26',strTime:'02:00:00',strGroup:'D',strHomeTeam:'Paraguay',strAwayTeam:'Australia',idHomeTeam:'136471',idAwayTeam:'134500',intHomeScore:null,intAwayScore:null,intRound:'3'},
+  {idEvent:'2391775',dateEvent:'2026-06-26',strTime:'19:00:00',strGroup:'I',strHomeTeam:'Norway',strAwayTeam:'France',idHomeTeam:'136516',idAwayTeam:'133913',intHomeScore:null,intAwayScore:null,intRound:'3'},
+  {idEvent:'2461118',dateEvent:'2026-06-26',strTime:'02:00:00',strGroup:'D',strHomeTeam:'Turkey',strAwayTeam:'USA',idHomeTeam:'135985',idAwayTeam:'134514',intHomeScore:null,intAwayScore:null,intRound:'3'},
+  {idEvent:'2391772',dateEvent:'2026-06-27',strTime:'00:00:00',strGroup:'H',strHomeTeam:'Cape Verde',strAwayTeam:'Saudi Arabia',idHomeTeam:'136477',idAwayTeam:'136137',intHomeScore:null,intAwayScore:null,intRound:'3'},
+  {idEvent:'2391773',dateEvent:'2026-06-27',strTime:'03:00:00',strGroup:'G',strHomeTeam:'Egypt',strAwayTeam:'Iran',idHomeTeam:'136138',idAwayTeam:'134511',intHomeScore:null,intAwayScore:null,intRound:'3'},
+  {idEvent:'2391774',dateEvent:'2026-06-27',strTime:'03:00:00',strGroup:'G',strHomeTeam:'New Zealand',strAwayTeam:'Belgium',idHomeTeam:'137449',idAwayTeam:'134515',intHomeScore:null,intAwayScore:null,intRound:'3'},
+  {idEvent:'2391777',dateEvent:'2026-06-28',strTime:'02:00:00',strGroup:'J',strHomeTeam:'Algeria',strAwayTeam:'Austria',idHomeTeam:'134516',idAwayTeam:'135986',intHomeScore:null,intAwayScore:null,intRound:'3'},
+  {idEvent:'2391780',dateEvent:'2026-06-28',strTime:'02:00:00',strGroup:'J',strHomeTeam:'Jordan',strAwayTeam:'Argentina',idHomeTeam:'140145',idAwayTeam:'134509',intHomeScore:null,intAwayScore:null,intRound:'3'},
+];
+
+/* ===== FETCH ALL MATCHES (정적 데이터 + 날짜별 보완 조회) =====
+   eventsseason.php / eventspastleague.php / eventsnextleague.php는 무료 키에서
+   각각 15개/1개/1개로 결과가 하드 제한되어 104경기 일정을 받아올 수 없다 (실측 확인됨).
+   eventsday.php(하루 단위, 리그 필터)도 호출 1건당 최대 3경기로 제한되어 있어(실측 확인),
+   바쁜 날엔 4번째 이상 경기가 누락될 수 있다 — 이는 무료 API 자체의 한계라 완전한 해결이
+   불가능하다 (예: F·K·L조 일부 경기는 같은 날 다른 경기에 의해 가려져 못 받아올 수 있음).
+   대신 위 STATIC_MATCHES로 대부분의 일정을 즉시 표시하고, 부족한 부분만 날짜별 조회로
+   보완한다. 날짜별로 localStorage에 캐시하고, "확정된(과거+모든 경기 종료)" 날은 다시는
+   호출하지 않는다. */
+const TOURNAMENT_START = '2026-06-11';
+const TOURNAMENT_END   = '2026-07-19';
+const DAY_CACHE_KEY    = 'wc2026_day_cache_v1';
+
+function loadDayCache() {
+  try { return JSON.parse(localStorage.getItem(DAY_CACHE_KEY) || '{}'); } catch { return {}; }
+}
+function saveDayCache(c) {
+  try { localStorage.setItem(DAY_CACHE_KEY, JSON.stringify(c)); } catch {}
+}
+function isDayFinal(dateStr, events) {
+  const t = todayStr();
+  if (dateStr >= t) return false;               // 오늘/미래는 항상 갱신 대상
+  if (!events.length) return true;               // 과거인데 경기 없는 날(이동일) → 영구 확정
+  return events.every(e => e.intHomeScore != null && e.intHomeScore !== '' && e.intAwayScore != null && e.intAwayScore !== '');
+}
+function dayTTL(dateStr) {
+  const t = todayStr();
+  if (dateStr > t) return 12 * 60 * 60 * 1000;   // 미래 경기: 12시간마다 갱신
+  if (dateStr === t) return 4 * 60 * 1000;        // 오늘: 4분 (5분 자동갱신과 맞춤)
+  return 30 * 60 * 1000;                          // 과거인데 아직 final 아님(이례적): 30분
+}
+
+/* 정적 데이터를 day-cache 형태로 변환해 비어있는 날짜만 채워 넣는다.
+   이미 실제 API 응답이 들어있는 날은 덮어쓰지 않는다 — 실데이터가 항상 우선. */
+function seedDayCacheFromStatic(cache) {
+  const byDay = {};
+  STATIC_MATCHES.forEach(m => (byDay[m.dateEvent] = byDay[m.dateEvent] || []).push(m));
+  Object.keys(byDay).forEach(day => {
+    if (cache[day]) return;
+    const events = byDay[day];
+    // fetchedAt:0 → "오래전에 받아온 것"으로 간주돼, TTL 로직에 따라 필요시 자동으로
+    // 실데이터로 보완/갱신된다 (이미 종료된 날은 isDayFinal이 true가 되어 재호출 안 함).
+    cache[day] = { events, final: isDayFinal(day, events), fetchedAt: 0 };
   });
+  return cache;
+}
+
+function buildMatchesFromCache(cache) {
+  const days = dateRangeArray(TOURNAMENT_START, TOURNAMENT_END);
+  const allMap = new Map();
+  days.forEach(day => (cache[day]?.events || []).forEach(e => {
+    if (e.dateEvent?.startsWith('2026')) allMap.set(e.idEvent, e);
+  }));
   return [...allMap.values()].sort((a,b) =>
     new Date(a.dateEvent+'T'+(a.strTime||'00:00')) - new Date(b.dateEvent+'T'+(b.strTime||'00:00'))
   );
 }
 
-/* ===== LOAD MATCHES ===== */
+async function fetchAllMatches(leagueId, onProgress) {
+  let cache = seedDayCacheFromStatic(loadDayCache());
+  const days = dateRangeArray(TOURNAMENT_START, TOURNAMENT_END);
+  const needFetch = days.filter(d => {
+    const c = cache[d];
+    if (!c) return true;
+    if (c.final) return false;
+    return (Date.now() - (c.fetchedAt || 0)) > dayTTL(d);
+  });
+
+  let fetched = 0;
+  for (const day of days) {
+    if (!needFetch.includes(day)) continue;
+    const r = await tsdbFetch(`https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d=${day}&l=${leagueId}`);
+    const events = (r?.events || []).filter(e => String(e.idLeague) === String(leagueId));
+    if (events.length) {
+      cache[day] = { events, final: isDayFinal(day, events), fetchedAt: Date.now() };
+    } else if (cache[day]) {
+      // 실응답이 비었지만 정적 시드(혹은 이전 캐시) 데이터가 있으면 그대로 유지하고 타임스탬프만 갱신
+      cache[day] = { ...cache[day], fetchedAt: Date.now() };
+    } else {
+      cache[day] = { events: [], final: isDayFinal(day, []), fetchedAt: Date.now() };
+    }
+    fetched++;
+    if (onProgress) onProgress(fetched, needFetch.length);
+    saveDayCache(cache);
+  }
+
+  return buildMatchesFromCache(cache);
+}
+
+/* ===== LOAD MATCHES =====
+   1) 내장된 STATIC_MATCHES로 즉시 렌더링한다 (네트워크 호출 없음 → 첫 로딩이 거의 즉각적).
+   2) 그 다음 백그라운드에서 아직 끝나지 않은 날짜만 보완 조회해, 끝나면 한 번 더 갱신해준다
+      (화면을 가리는 로딩 스피너 없이 진행). */
 async function loadMatches() {
   const container = document.getElementById('matches-list');
   container.innerHTML = `<div style="text-align:center;padding:20px;color:#bbb">⏳ FIFA 월드컵 리그 확인 중...</div>`;
   try {
     if (!wcLeagueId) wcLeagueId = await findWCLeagueId();
     if (!wcLeagueId) {
-      container.innerHTML = `<div style="text-align:center;padding:40px;color:#aaa"><div style="font-size:2em">⚽</div><div style="font-weight:700;margin-top:8px">월드컵 리그를 찾지 못했습니다</div></div>`;
+      container.innerHTML = `<div style="text-align:center;padding:40px;color:#aaa"><div style="font-size:2em">⚽</div><div style="font-weight:700;margin-top:8px">월드컵 리그를 찾지 못했습니다</div><div style="font-size:.8em;color:#bbb;margin-top:4px">네트워크 상태를 확인하고 🔄 버튼으로 다시 시도해보세요</div></div>`;
       return;
     }
-    container.innerHTML = `<div style="text-align:center;padding:20px;color:#bbb">⏳ 경기 일정 로딩 중...</div>`;
-    wMatches = await fetchAllMatches(wcLeagueId);
 
-    if (!wMatches.length) {
+    // 1) 정적 데이터 즉시 렌더링
+    const seeded = seedDayCacheFromStatic(loadDayCache());
+    saveDayCache(seeded);
+    wMatches = buildMatchesFromCache(seeded);
+
+    if (wMatches.length) {
+      populateRoundFilter();
+      renderMatchList(container);
+      renderGroupStandings();
+      startAIProgress();
+      updateSettlement();
+    } else {
+      container.innerHTML = `<div style="text-align:center;padding:20px;color:#bbb">⏳ 경기 일정 로딩 중...</div>`;
+    }
+
+    // 2) 백그라운드 보완 조회 — 아직 끝나지 않았거나 새로 잡힌 경기만 채워넣고 다시 그린다
+    const updated = await fetchAllMatches(wcLeagueId);
+    if (updated.length) {
+      wMatches = updated;
+      populateRoundFilter();
+      renderMatchList(container);
+      renderGroupStandings();
+      startAIProgress();
+      updateSettlement();
+    } else if (!wMatches.length) {
       container.innerHTML = `<div style="text-align:center;padding:40px;color:#aaa">
         <div style="font-size:2.5em">⚽</div>
         <div style="font-weight:700;margin-top:8px">2026 FIFA 월드컵 데이터 없음</div>
         <div style="font-size:.8em;color:#bbb;margin-top:4px">TheSportsDB에 데이터가 아직 없습니다 (리그 ID: ${wcLeagueId})</div>
       </div>`;
-      return;
     }
-
-    populateRoundFilter();
-    renderMatchList(container);
-    renderGroupStandings();
-    startAIProgress();
-    updateSettlement();
     startAutoRefresh();
   } catch(e) {
-    container.innerHTML = `<div style="text-align:center;color:var(--red);padding:24px">오류: ${e.message}</div>`;
+    if (!wMatches.length) container.innerHTML = `<div style="text-align:center;color:var(--red);padding:24px">오류: ${e.message}</div>`;
   }
 }
 
@@ -401,7 +672,7 @@ function populateRoundFilter() {
     upcoming.map(m => {
       const date = m.dateEvent ? m.dateEvent.slice(5).replace('-', '/') : '';
       const time = m.strTime ? m.strTime.slice(0,5) : '';
-      const label = `${flag(m.strHomeTeam)}${m.strHomeTeam} vs ${flag(m.strAwayTeam)}${m.strAwayTeam}${date ? ' · '+date : ''}${time ? ' '+time : ''}`;
+      const label = `${flag(m.strHomeTeam)}${kor(m.strHomeTeam)} vs ${flag(m.strAwayTeam)}${kor(m.strAwayTeam)}${date ? ' · '+date : ''}${time ? ' '+time : ''}`;
       return `<option value="${m.idEvent}">${label}</option>`;
     }).join('');
 
@@ -432,6 +703,12 @@ function updateMatchCount() {
 async function reloadMatches() {
   if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
   wMatches = [];
+  // 리그ID는 안정적이라 매번 재탐색할 필요 없음 — 날짜 캐시 중 오늘~+2일치만 무효화해서
+  // 새로고침 버튼이 최신 스코어를 받아오게 하고, 39일 전체를 다시 긁지 않게 한다.
+  const cache = loadDayCache();
+  const t = todayStr();
+  Object.keys(cache).forEach(d => { if (d >= t && d <= addDays(t, 2)) delete cache[d]; });
+  saveDayCache(cache);
   Object.keys(aiCache).forEach(k => delete aiCache[k]);
   filterRound = 'upcoming';
   const sel = document.getElementById('match-filter');
@@ -465,6 +742,8 @@ function startAutoRefresh() {
 
 /* ===== GROUP STANDINGS ===== */
 function getMatchGroup(m) {
+  // TheSportsDB는 strGroup 필드에 그룹명을 직접 내려줌 (예: "H") — 텍스트 정규식보다 우선 사용
+  if (m.strGroup) return `Group ${m.strGroup.toUpperCase()}`;
   const texts = [m.strRound || '', m.strEvent || '', m.strFilename || ''];
   for (const t of texts) {
     const hit = t.match(/group\s+([a-l])/i) || t.match(/그룹\s*([A-L])/i);
@@ -524,7 +803,7 @@ function renderGroupStandings() {
       const dotCls = i === 0 ? 'background:#27ae60' : i === 1 ? 'background:#52be80' : 'background:#ddd';
       const rowBg  = i === 0 ? '#eafaf1' : i === 1 ? '#f0fff4' : '';
       html += `<tr style="background:${rowBg}">
-        <td><span class="adv-dot" style="${dotCls}"></span>${flag(t.name)} ${t.name}</td>
+        <td><span class="adv-dot" style="${dotCls}"></span>${flag(t.name)} ${kor(t.name)}</td>
         <td>${t.p}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td>
         <td>${t.gf}</td><td>${t.ga}</td>
         <td style="color:${gd>0?'var(--green)':gd<0?'var(--red)':'#aaa'};font-weight:${gd!==0?'700':'400'}">${gd>0?'+':''}${gd}</td>
@@ -546,24 +825,64 @@ function actualResult(m) {
   return { h: +m.intHomeScore, a: +m.intAwayScore };
 }
 
-function matchWinners(m) {
-  const actual = actualResult(m);
-  if (!actual) return { winners: [], type: null };
-  const entered = participants.filter(p => picks[p.id]?.[m.idEvent]?.h !== undefined);
-  if (!entered.length) return { winners: [], type: null };
-  const exact = entered.filter(p =>
-    picks[p.id][m.idEvent].h === actual.h && picks[p.id][m.idEvent].a === actual.a
-  );
-  if (exact.length) return { winners: exact, type: 'exact' };
-  const withDist = entered.map(p => ({
-    p, d: Math.abs(picks[p.id][m.idEvent].h - actual.h) + Math.abs(picks[p.id][m.idEvent].a - actual.a)
-  }));
-  const minD = Math.min(...withDist.map(x => x.d));
-  return { winners: withDist.filter(x => x.d === minD).map(x => x.p), type: 'closest', dist: minD };
+/* ===== SETTLEMENT (적립식 잭팟) =====
+   규칙: 정확한 스코어를 맞춘 사람이 있으면 → 그 경기의 판돈 + 그동안 쌓인 적립금을 전부 수령.
+         아무도 정확히 못 맞추면 → 그 경기 판돈은 받아가는 사람이 없이 적립금으로 누적되어 다음 경기로 넘어간다.
+   wMatches는 날짜순으로 정렬되어 있으므로 순서대로 순회하면서 적립금을 누적 계산한다. */
+function computeSettlement() {
+  const balance = {}, wins = {};
+  participants.forEach(p => { balance[p.id] = 0; wins[p.id] = 0; });
+
+  let rollover = 0;
+  const timeline = {};
+
+  wMatches.forEach(m => {
+    const actual  = actualResult(m);
+    const entered = participants.filter(p => picks[p.id]?.[m.idEvent]?.h !== undefined);
+    const pot     = entered.reduce((s,p) => s + p.bet, 0);
+
+    if (!actual) {
+      // 아직 끝나지 않은 경기: 지금까지 쌓인 적립금만 보여주기 위해 스냅샷 저장 (적립금 자체는 진행시키지 않음)
+      timeline[m.idEvent] = { completed:false, pot, entered, rolloverBefore: rollover };
+      return;
+    }
+
+    const exact = entered.filter(p =>
+      picks[p.id][m.idEvent].h === actual.h && picks[p.id][m.idEvent].a === actual.a
+    );
+    const rolloverBefore = rollover;
+    let payout = 0;
+
+    if (entered.length) {
+      if (exact.length) {
+        payout = pot + rollover;
+        const share = payout / exact.length;
+        exact.forEach(p => { balance[p.id] += share - p.bet; wins[p.id]++; });
+        entered.forEach(p => { if (!exact.includes(p)) balance[p.id] -= p.bet; });
+        rollover = 0;
+      } else {
+        entered.forEach(p => balance[p.id] -= p.bet);
+        rollover += pot;
+      }
+    }
+
+    timeline[m.idEvent] = {
+      completed: true, pot, entered, exact, payout,
+      rolloverBefore, rolloverAfter: rollover
+    };
+  });
+
+  return { timeline, balance, wins, finalRollover: rollover };
+}
+
+function refreshSettlement() {
+  settlementCache = computeSettlement();
+  return settlementCache;
 }
 
 /* ===== RENDER MATCH LIST ===== */
 function renderMatchList(container) {
+  const settlement = refreshSettlement();
   const ms = getFilteredMatches();
   if (!ms.length && wMatches.length) {
     container.innerHTML = `<div style="text-align:center;padding:28px;color:#bbb">
@@ -580,12 +899,13 @@ function renderMatchList(container) {
   let html = '';
   for (const [round, matchList] of Object.entries(rounds)) {
     html += `<div class="round-hdr">📅 ${round}</div>`;
-    for (const m of matchList) html += matchCardHTML(m);
+    for (const m of matchList) html += matchCardHTML(m, settlement);
   }
   container.innerHTML = html;
 }
 
-function matchCardHTML(m) {
+function matchCardHTML(m, settlement) {
+  settlement = settlement || settlementCache || refreshSettlement();
   const done = actualResult(m);
   const date = m.dateEvent
     ? new Date(m.dateEvent+'T12:00:00').toLocaleDateString('ko-KR',{month:'numeric',day:'numeric',weekday:'short'})
@@ -595,14 +915,16 @@ function matchCardHTML(m) {
   let aiHintHTML = `<div class="ai-hint" id="ai-hint-${m.idEvent}" style="color:#ccc">🤖 AI 분석 중...</div>`;
   if (ai) aiHintHTML = buildAiHintHTML(m.idEvent, ai, m.strHomeTeam, m.strAwayTeam);
 
+  const tl = settlement.timeline[m.idEvent] || { pot:0, entered:[], rolloverBefore:0 };
+
   let betRowsHTML = '';
   if (!participants.length) {
     betRowsHTML = '<p style="text-align:center;color:#bbb;font-size:.8rem;padding:6px">위에서 참가자를 먼저 추가하세요</p>';
   } else {
-    const { winners, type } = matchWinners(m);
-    const winnerIds = winners.map(p => p.id);
-    const entered = participants.filter(p => picks[p.id]?.[m.idEvent]?.h !== undefined);
-    const pot = entered.reduce((s,p) => s + p.bet, 0);
+    const exact = tl.exact || [];
+    const exactIds = exact.map(p => p.id);
+    const entered = tl.entered || [];
+    const pot = tl.pot || 0;
 
     const inputLabel = done
       ? `<div style="font-size:.73rem;color:#aaa;margin-bottom:6px">📊 경기 종료 — 예측 잠금</div>`
@@ -613,23 +935,19 @@ function matchCardHTML(m) {
       const pick = picks[p.id]?.[m.idEvent];
       const hVal = pick?.h !== undefined ? pick.h : '';
       const aVal = pick?.a !== undefined ? pick.a : '';
-      const isWinner = winnerIds.includes(p.id);
-      const actual = actualResult(m);
-      const isExact = actual && pick && pick.h === actual.h && pick.a === actual.a;
+      const isExactWinner = exactIds.includes(p.id);
 
       let badge = `<span class="badge-none result-badge">${done ? '' : '미입력'}</span>`;
-      if (actual && pick !== undefined) {
-        if (isWinner) {
-          const share = pot / winners.length;
+      if (done && pick && pick.h !== undefined) {
+        if (isExactWinner) {
+          const share = (tl.payout || pot) / exact.length;
           const net = share - p.bet;
-          const label = isExact ? '🎯 정확!' : '📍 최근접';
-          const cls = isExact ? 'badge-exact' : 'badge-close';
-          badge = `<span class="${cls} result-badge">${label}<br>+${Math.round(net).toLocaleString()}원</span>`;
-        } else if (pick) {
-          badge = `<span class="badge-lose result-badge">❌ -${p.bet.toLocaleString()}원</span>`;
+          badge = `<span class="badge-exact result-badge">🎯 정확!<br>+${Math.round(net).toLocaleString()}원</span>`;
         } else {
-          badge = `<span class="badge-none result-badge">미입력</span>`;
+          badge = `<span class="badge-lose result-badge">❌ -${p.bet.toLocaleString()}원</span>`;
         }
+      } else if (done) {
+        badge = `<span class="badge-none result-badge">미입력</span>`;
       }
 
       betRowsHTML += `<div class="bet-row">
@@ -652,20 +970,26 @@ function matchCardHTML(m) {
 
     if (!done) {
       const potAll = participants.reduce((s,p) => s + p.bet, 0);
+      const jackpotTxt = tl.rolloverBefore > 0
+        ? `<span class="jackpot-info">· 적립금 ${tl.rolloverBefore.toLocaleString()}원 (맞히면 합산 수령)</span>` : '';
       betRowsHTML += `<div class="save-row">
-        <span class="pot-info">총 판돈: <strong>${potAll.toLocaleString()}원</strong></span>
+        <span class="pot-info">총 판돈: <strong>${potAll.toLocaleString()}원</strong>${jackpotTxt}</span>
         <button class="btn sm green" onclick="saveMatchPicks('${m.idEvent}')">💾 저장</button>
       </div>`;
-    } else if (winners.length) {
-      const typeLabel = type === 'exact' ? '정확한 스코어 적중' : `최근접 예측 (오차 ${matchWinners(m).dist}골)`;
-      betRowsHTML += `<div class="winner-box">🏆 <strong>${winners.map(p=>p.name).join(', ')}</strong> 승리 — ${typeLabel} — 각 ${Math.round(pot/winners.length).toLocaleString()}원 수령</div>`;
+    } else if (entered.length) {
+      if (exact.length) {
+        const share = Math.round((tl.payout || pot) / exact.length);
+        betRowsHTML += `<div class="winner-box">🏆 <strong>${exact.map(p=>p.name).join(', ')}</strong> 정확한 스코어 적중 — 판돈 ${pot.toLocaleString()}원${tl.rolloverBefore ? ` + 적립금 ${tl.rolloverBefore.toLocaleString()}원` : ''} = 각 ${share.toLocaleString()}원 수령</div>`;
+      } else {
+        betRowsHTML += `<div class="rollover-box">📦 아무도 정확한 스코어를 맞추지 못해 이번 판돈 ${pot.toLocaleString()}원은 적립금으로 이동했습니다 — 누적 적립금 <strong>${tl.rolloverAfter.toLocaleString()}원</strong> (다음에 정확히 맞춘 사람이 전부 수령)</div>`;
+      }
     }
   }
 
   return `<div class="match-card" id="mcard-${m.idEvent}">
     <div class="match-top">
       <div class="match-row">
-        <span class="team r">${flag(m.strHomeTeam)} ${m.strHomeTeam}</span>
+        <span class="team r">${flag(m.strHomeTeam)} ${kor(m.strHomeTeam)}</span>
         <div class="mid">
           <div style="font-size:.6rem;color:#aaa;margin-bottom:2px">🤖 AI 예측</div>
           <div id="ai-${m.idEvent}">${ai ? `<span class="ai-score">${ai.best.h}:${ai.best.a}</span>` : '<span style="color:#ccc;font-size:.72rem">분석 중...</span>'}</div>
@@ -673,7 +997,7 @@ function matchCardHTML(m) {
             ? `<div style="font-size:.6rem;color:#aaa;margin:4px 0 2px">⚽ 실제 결과</div><div class="actual-score">${done.h} : ${done.a}</div>`
             : `<div class="match-date">${date}</div>`}
         </div>
-        <span class="team">${flag(m.strAwayTeam)} ${m.strAwayTeam}</span>
+        <span class="team">${flag(m.strAwayTeam)} ${kor(m.strAwayTeam)}</span>
       </div>
       <div class="prob-bar" id="prob-${m.idEvent}">
         ${ai
@@ -722,11 +1046,12 @@ function saveMatchPicks(matchId) {
     if (pk && (pk.h === undefined || pk.a === undefined)) delete picks[p.id][matchId];
   });
   localStorage.setItem(PICKS_KEY, JSON.stringify(picks));
+  const settlement = refreshSettlement();
   const m = wMatches.find(m => m.idEvent === matchId);
   const card = document.getElementById('mcard-'+matchId);
   if (m && card) {
     const newCard = document.createElement('div');
-    newCard.innerHTML = matchCardHTML(m);
+    newCard.innerHTML = matchCardHTML(m, settlement);
     card.replaceWith(newCard.firstElementChild);
   }
   updateSettlement();
@@ -772,39 +1097,26 @@ function renderParticipants() {
     </div>`).join('');
 }
 
-/* ===== SETTLEMENT ===== */
+/* ===== SETTLEMENT (리더보드) ===== */
 function updateSettlement() {
   const el = document.getElementById('settlement');
   if (!participants.length) {
     el.innerHTML = '<p style="text-align:center;color:#ccc;font-size:.85rem;padding:12px">참가자 추가 후 자동 계산됩니다</p>';
     return;
   }
-  const balance = {}, wins = {};
-  participants.forEach(p => { balance[p.id] = 0; wins[p.id] = 0; });
-  let completedCount = 0;
-  wMatches.forEach(m => {
-    const actual = actualResult(m);
-    if (!actual) return;
-    completedCount++;
-    const entered = participants.filter(p => picks[p.id]?.[m.idEvent]?.h !== undefined);
-    if (!entered.length) return;
-    const { winners } = matchWinners(m);
-    const pot = entered.reduce((s,p) => s + p.bet, 0);
-    entered.forEach(p => {
-      if (winners.find(w => w.id === p.id)) {
-        balance[p.id] += pot / winners.length - p.bet;
-        wins[p.id]++;
-      } else {
-        balance[p.id] -= p.bet;
-      }
-    });
-  });
+  const { balance, wins, finalRollover, timeline } = refreshSettlement();
+  const completedCount = Object.values(timeline).filter(t => t.completed).length;
 
   const ranked = participants.slice().sort((a,b) => balance[b.id] - balance[a.id] || wins[b.id] - wins[a.id]);
   const rc = i => ['g','s','b'][i] || '';
   const med = i => ['🥇','🥈','🥉'][i] || '';
 
-  let html = ranked.map((p,i) => {
+  let html = '';
+  if (finalRollover > 0) {
+    html += `<div class="jackpot-banner">💰 현재 누적 적립금 <span style="font-size:1.05em">${finalRollover.toLocaleString()}원</span> — 다음에 스코어를 정확히 맞춘 사람이 전부 가져갑니다</div>`;
+  }
+
+  html += ranked.map((p,i) => {
     const net = balance[p.id];
     const netStr = net > 0
       ? `<span style="color:var(--green);font-weight:800">+${Math.round(net).toLocaleString()}원</span>`
@@ -818,7 +1130,7 @@ function updateSettlement() {
       <div class="rnum ${rc(i)}">${i+1}</div>
       <div style="flex:1">
         <div style="font-weight:700">${p.name} ${med(i)}</div>
-        <div style="font-size:.76rem;color:#aaa">${wins[p.id]}경기 승리 / ${predCount}경기 예측 입력</div>
+        <div style="font-size:.76rem;color:#aaa">${wins[p.id]}경기 정확 적중 / ${predCount}경기 예측 입력</div>
       </div>
       <div>${netStr}</div>
     </div>`;
@@ -846,9 +1158,12 @@ function updateSettlement() {
 
 /* ===== AI PROGRESS ===== */
 async function startAIProgress() {
-  for (const m of wMatches.slice(0, 32)) {
+  // wMatches는 날짜 오름차순 정렬이라 slice(0,32)는 가장 오래된(이미 끝난) 경기부터 잡힌다.
+  // 베팅에 필요한 건 다가올 경기 예측이므로 upcoming을 우선 처리한다.
+  const targets = [...wMatches.filter(isUpcoming), ...wMatches.filter(m => !isUpcoming(m))].slice(0, 40);
+  for (const m of targets) {
     try {
-      const pred = await aiPredict(m.idEvent, m.strHomeTeam, m.strAwayTeam);
+      const pred = await aiPredict(m.idEvent, m.strHomeTeam, m.strAwayTeam, m.idHomeTeam, m.idAwayTeam);
       const aiEl = document.getElementById('ai-'+m.idEvent);
       if (aiEl) aiEl.innerHTML = `<span class="ai-score">${pred.best.h}:${pred.best.a}</span>`;
       const probEl = document.getElementById('prob-'+m.idEvent);
