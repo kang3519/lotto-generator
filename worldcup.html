@@ -153,18 +153,137 @@
     <div id="standings-content"></div>
   </div>
 
-  <!-- 광고 배너 (스크롤 진입 시 페이드인) -->
-  <div id="ad-banner" style="opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease;border-radius:14px;overflow:hidden">
-    <a href="https://example.com" target="_blank" rel="noopener" style="display:block;text-decoration:none">
-      <div style="background:linear-gradient(135deg,#1a3a5c,#2980b9);padding:24px 20px;text-align:center;color:#fff">
-        <div style="font-size:.72rem;letter-spacing:1px;color:rgba(255,255,255,.6);margin-bottom:6px">SPONSORED</div>
-        <!-- ▼▼ 여기에 회사 로고 이미지를 넣으세요 ▼▼ -->
-        <!-- <img src="회사로고URL" alt="로고" style="height:40px;margin-bottom:12px"> -->
-        <div style="font-size:1.3rem;font-weight:800;margin-bottom:8px">🚀 회사 제품명</div>
-        <div style="font-size:.88rem;color:rgba(255,255,255,.85);margin-bottom:16px">제품 한 줄 소개 문구를 여기에 입력하세요</div>
-        <div style="display:inline-block;background:#fff;color:#1a3a5c;font-weight:800;font-size:.88rem;padding:10px 28px;border-radius:30px">지금 바로 보기 →</div>
+  <!-- 광고 캐러셀 (스크롤 진입 시 페이드인, 4초마다 자동 슬라이드) -->
+  <div id="ad-banner" style="opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease;border-radius:14px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,.13)">
+    <style>
+      .ad-wrap{position:relative;overflow:hidden;background:#1255b8;font-family:Arial,sans-serif}
+      .ad-slides{display:flex;transition:transform .5s ease}
+      .ad-slide{min-width:100%;flex-shrink:0}
+      .ad-top{background:#1255b8;color:#fff;text-align:center;padding:11px 16px;font-size:1.05rem;font-weight:800;letter-spacing:.5px}
+      .ad-body{background:#fff;display:flex;align-items:center;gap:12px;padding:16px 20px;min-height:150px}
+      .ad-specs{flex:1;font-size:.82rem;line-height:1.9}
+      .ad-specs .ck{color:#1255b8;font-weight:700;margin-right:4px}
+      .ad-specs .ck.r{color:#e74c3c}
+      .ad-specs .hl{background:#ffff00;padding:0 4px;font-weight:700;color:#000}
+      .ad-img{width:220px;flex-shrink:0;text-align:center}
+      .ad-img img{max-width:100%;max-height:130px;object-fit:contain}
+      .ad-bot{background:#1255b8;color:#fff;text-align:center;padding:10px 16px}
+      .ad-bot-sub{font-size:.78rem;margin-bottom:2px;opacity:.9}
+      .ad-bot-main{font-size:1rem;font-weight:800}
+      .ad-dots{display:flex;justify-content:center;gap:6px;padding:8px 0;background:#0d43a0}
+      .ad-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.35);cursor:pointer;transition:background .2s}
+      .ad-dot.on{background:#fff}
+      .ad-arrows{position:absolute;top:50%;transform:translateY(-50%);width:100%;display:flex;justify-content:space-between;pointer-events:none;padding:0 8px}
+      .ad-arr{pointer-events:all;background:rgba(0,0,0,.25);color:#fff;border:none;border-radius:50%;width:28px;height:28px;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
+      .ad-arr:hover{background:rgba(0,0,0,.5)}
+      @media(max-width:500px){.ad-img{width:130px}.ad-body{gap:8px;padding:12px 14px}.ad-specs{font-size:.76rem}}
+    </style>
+    <div class="ad-wrap">
+      <div class="ad-slides" id="adSlides">
+
+        <!-- 슬라이드 1: 노트북 -->
+        <div class="ad-slide">
+          <div class="ad-top">NT750XGR-A71AG</div>
+          <div class="ad-body">
+            <div class="ad-specs">
+              <div><span class="ck">✔</span> 삼성 노트북</div>
+              <div><span class="ck r">✔</span> <strong>i7-1355U</strong></div>
+              <div><span class="ck">✔</span> 15.6" FHD</div>
+              <div><span class="ck">✔</span> LP 16GD4</div>
+              <div><span class="ck">✔</span> 512GS</div>
+              <div><span class="ck">✔</span> IRES XE</div>
+              <div><span class="ck r">✔</span> <span class="hl">FreeDOS</span></div>
+            </div>
+            <div class="ad-img">
+              <!-- 제품 이미지가 있다면 아래 img src에 URL 입력 -->
+              <svg viewBox="0 0 220 140" style="width:100%;max-height:130px" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="20" y="10" width="180" height="110" rx="8" fill="#2c2c2c"/>
+                <rect x="26" y="16" width="168" height="90" rx="4" fill="#1a1a2e"/>
+                <rect x="26" y="16" width="168" height="90" rx="4" fill="url(#lg1)"/>
+                <defs><linearGradient id="lg1" x1="26" y1="16" x2="194" y2="106" gradientUnits="userSpaceOnUse"><stop stop-color="#f39c12"/><stop offset="1" stop-color="#1a1a2e"/></linearGradient></defs>
+                <rect x="10" y="122" width="200" height="8" rx="4" fill="#555"/>
+                <rect x="80" y="107" width="60" height="15" rx="2" fill="#3a3a3a"/>
+              </svg>
+            </div>
+          </div>
+          <div class="ad-bot">
+            <div class="ad-bot-sub">삼성 B2B 특판. 유통 전문점</div>
+            <div class="ad-bot-main">다정씨앤씨 ☎ 02-573-1120</div>
+          </div>
+        </div>
+
+        <!-- 슬라이드 2: 모니터 -->
+        <div class="ad-slide">
+          <div class="ad-top">LS24D304GAKXKR</div>
+          <div class="ad-body">
+            <div class="ad-specs">
+              <div><span class="ck">✔</span> 삼성 모니터</div>
+              <div><span class="ck">✔</span> 24"</div>
+              <div><span class="ck">✔</span> LED</div>
+              <div><span class="ck">✔</span> 1920×1080</div>
+              <div><span class="ck">✔</span> 250cd</div>
+              <div><span class="ck">✔</span> 1000:1</div>
+              <div><span class="ck">✔</span> 5ms</div>
+            </div>
+            <div class="ad-img">
+              <svg viewBox="0 0 220 150" style="width:100%;max-height:130px" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="10" y="8" width="200" height="120" rx="6" fill="#1a1a2e"/>
+                <rect x="16" y="14" width="188" height="106" rx="3" fill="url(#lg2)"/>
+                <defs><linearGradient id="lg2" x1="16" y1="14" x2="204" y2="120" gradientUnits="userSpaceOnUse"><stop stop-color="#1255b8"/><stop offset=".5" stop-color="#f1c40f"/><stop offset="1" stop-color="#2980b9"/></linearGradient></defs>
+                <text x="110" y="75" text-anchor="middle" fill="white" font-size="10" font-family="Arial" font-weight="bold">Essential Monitor S3</text>
+                <rect x="95" y="128" width="30" height="14" rx="2" fill="#2c2c2c"/>
+                <rect x="60" y="140" width="100" height="6" rx="3" fill="#555"/>
+              </svg>
+            </div>
+          </div>
+          <div class="ad-bot">
+            <div class="ad-bot-sub">삼성 B2B 특판. 유통 전문점</div>
+            <div class="ad-bot-main">다정씨앤씨 ☎ 02-573-1120</div>
+          </div>
+        </div>
+
+        <!-- 슬라이드 3: 데스크탑 -->
+        <div class="ad-slide">
+          <div class="ad-top">DM501THA-UR512</div>
+          <div class="ad-body">
+            <div class="ad-specs">
+              <div><span class="ck">✔</span> 삼성 데스크탑</div>
+              <div><span class="ck r">✔</span> <strong>Ultra5-225</strong></div>
+              <div><span class="ck">✔</span> 16GD5-5600</div>
+              <div><span class="ck">✔</span> 256GS</div>
+              <div><span class="ck">✔</span> DVMT</div>
+              <div><span class="ck">✔</span> 500W</div>
+              <div><span class="ck">✔</span> 11-in-1</div>
+            </div>
+            <div class="ad-img">
+              <svg viewBox="0 0 140 180" style="width:80%;max-height:130px" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="20" y="10" width="100" height="160" rx="6" fill="#2c2c2c"/>
+                <rect x="26" y="18" width="88" height="2" rx="1" fill="#444"/>
+                <circle cx="70" cy="30" r="5" fill="#444"/>
+                <rect x="56" y="50" width="8" height="30" rx="2" fill="#555"/>
+                <rect x="56" y="90" width="8" height="30" rx="2" fill="#555"/>
+                <rect x="26" y="155" width="20" height="8" rx="2" fill="#1255b8"/>
+              </svg>
+            </div>
+          </div>
+          <div class="ad-bot">
+            <div class="ad-bot-sub">삼성 B2B 특판. 유통 전문점</div>
+            <div class="ad-bot-main">다정씨앤씨 ☎ 02-573-1120</div>
+          </div>
+        </div>
+
+      </div><!-- /ad-slides -->
+
+      <div class="ad-arrows">
+        <button class="ad-arr" onclick="adMove(-1)">&#8249;</button>
+        <button class="ad-arr" onclick="adMove(1)">&#8250;</button>
       </div>
-    </a>
+    </div>
+    <div class="ad-dots" id="adDots">
+      <div class="ad-dot on" onclick="adGoTo(0)"></div>
+      <div class="ad-dot"    onclick="adGoTo(1)"></div>
+      <div class="ad-dot"    onclick="adGoTo(2)"></div>
+    </div>
   </div>
 
   <!-- ④ 종합 랭킹 -->
@@ -1259,7 +1378,19 @@ async function startAIProgress() {
 }
 
 /* ===== INIT ===== */
-/* ===== 광고 배너 스크롤 페이드인 ===== */
+/* ===== 광고 캐러셀 ===== */
+let adIdx = 0, adTotal = 3, adTimer = null;
+
+function adGoTo(n) {
+  adIdx = (n + adTotal) % adTotal;
+  document.getElementById('adSlides').style.transform = `translateX(-${adIdx * 100}%)`;
+  document.querySelectorAll('.ad-dot').forEach((d,i) => d.classList.toggle('on', i === adIdx));
+}
+function adMove(dir) { adGoTo(adIdx + dir); resetAdTimer(); }
+function resetAdTimer() {
+  if (adTimer) clearInterval(adTimer);
+  adTimer = setInterval(() => adGoTo(adIdx + 1), 4000);
+}
 function initAdBanner() {
   const banner = document.getElementById('ad-banner');
   if (!banner) return;
@@ -1267,9 +1398,10 @@ function initAdBanner() {
     if (entries[0].isIntersecting) {
       banner.style.opacity = '1';
       banner.style.transform = 'translateY(0)';
+      resetAdTimer();
       obs.disconnect();
     }
-  }, { threshold: 0.15 });
+  }, { threshold: 0.1 });
   obs.observe(banner);
 }
 
