@@ -276,32 +276,35 @@ Object.assign(teamCache, loadPersistedCache(TEAM_CACHE_KEY));
 Object.assign(aiCache,   loadPersistedCache(AI_CACHE_KEY));
 
 /* ===== FLAGS ===== */
-const F = {
-  'Brazil':'🇧🇷','France':'🇫🇷','Argentina':'🇦🇷','Spain':'🇪🇸','England':'🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-  'Germany':'🇩🇪','Portugal':'🇵🇹','Netherlands':'🇳🇱','Belgium':'🇧🇪','Italy':'🇮🇹',
-  'Croatia':'🇭🇷','Uruguay':'🇺🇾','Mexico':'🇲🇽','United States':'🇺🇸','Canada':'🇨🇦',
-  'Japan':'🇯🇵','South Korea':'🇰🇷','Australia':'🇦🇺','Morocco':'🇲🇦','Senegal':'🇸🇳',
-  'Ghana':'🇬🇭','Cameroon':'🇨🇲','Nigeria':'🇳🇬','Saudi Arabia':'🇸🇦','Iran':'🇮🇷',
-  'Poland':'🇵🇱','Switzerland':'🇨🇭','Denmark':'🇩🇰','Serbia':'🇷🇸','Ecuador':'🇪🇨',
-  'Colombia':'🇨🇴','Chile':'🇨🇱','Peru':'🇵🇪','Tunisia':'🇹🇳','Algeria':'🇩🇿',
-  'Qatar':'🇶🇦','Costa Rica':'🇨🇷','Panama':'🇵🇦','Jamaica':'🇯🇲','Indonesia':'🇮🇩',
-  'Venezuela':'🇻🇪','Bolivia':'🇧🇴','New Zealand':'🇳🇿','Kenya':'🇰🇪',
-  'Wales':'🏴󠁧󠁢󠁷󠁬󠁳󠁿','Scotland':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','Ukraine':'🇺🇦','Turkey':'🇹🇷',
-  'South Africa':'🇿🇦','Egypt':'🇪🇬','Ivory Coast':'🇨🇮',"Cote d'Ivoire":'🇨🇮',
-  'Mali':'🇲🇱','Congo DR':'🇨🇩','Zambia':'🇿🇲','Tanzania':'🇹🇿','Benin':'🇧🇯',
-  'Honduras':'🇭🇳','El Salvador':'🇸🇻','Trinidad':'🇹🇹','Trinidad and Tobago':'🇹🇹',
-  'Cuba':'🇨🇺','Guatemala':'🇬🇹','Haiti':'🇭🇹',
-  'Iraq':'🇮🇶','Uzbekistan':'🇺🇿','Oman':'🇴🇲','Bahrain':'🇧🇭','Jordan':'🇯🇴',
-  'Lebanon':'🇱🇧','Syria':'🇸🇾','Kyrgyzstan':'🇰🇬','Tajikistan':'🇹🇯',
-  'Czech Republic':'🇨🇿','Slovakia':'🇸🇰','Hungary':'🇭🇺','Romania':'🇷🇴',
-  'Austria':'🇦🇹','Greece':'🇬🇷','Bulgaria':'🇧🇬','Albania':'🇦🇱',
-  'Iceland':'🇮🇸','Norway':'🇳🇴','Sweden':'🇸🇪','Finland':'🇫🇮',
-  /* 2026 본선 확정 48개국 보강 (TheSportsDB가 실제 사용하는 영문 표기 기준) */
-  'USA':'🇺🇸','Paraguay':'🇵🇾','Bosnia-Herzegovina':'🇧🇦','Bosnia and Herzegovina':'🇧🇦',
-  'Curaçao':'🇨🇼','Curacao':'🇨🇼','Cape Verde':'🇨🇻',
-  'DR Congo':'🇨🇩','Congo DR':'🇨🇩','Democratic Republic of the Congo':'🇨🇩','DR Congo (Congo DR)':'🇨🇩',
+const ISO = {
+  'Brazil':'br','France':'fr','Argentina':'ar','Spain':'es','England':'gb-eng',
+  'Germany':'de','Portugal':'pt','Netherlands':'nl','Belgium':'be','Italy':'it',
+  'Croatia':'hr','Uruguay':'uy','Mexico':'mx','United States':'us','USA':'us','Canada':'ca',
+  'Japan':'jp','South Korea':'kr','Australia':'au','Morocco':'ma','Senegal':'sn',
+  'Ghana':'gh','Cameroon':'cm','Nigeria':'ng','Saudi Arabia':'sa','Iran':'ir',
+  'Poland':'pl','Switzerland':'ch','Denmark':'dk','Serbia':'rs','Ecuador':'ec',
+  'Colombia':'co','Chile':'cl','Peru':'pe','Tunisia':'tn','Algeria':'dz',
+  'Qatar':'qa','Costa Rica':'cr','Panama':'pa','Jamaica':'jm','Indonesia':'id',
+  'Venezuela':'ve','Bolivia':'bo','New Zealand':'nz','Kenya':'ke',
+  'Wales':'gb-wls','Scotland':'gb-sct','Ukraine':'ua','Turkey':'tr',
+  'South Africa':'za','Egypt':'eg','Ivory Coast':'ci',"Cote d'Ivoire":'ci',
+  'Mali':'ml','Congo DR':'cd','DR Congo':'cd','Democratic Republic of the Congo':'cd','DR Congo (Congo DR)':'cd',
+  'Zambia':'zm','Tanzania':'tz','Benin':'bj',
+  'Honduras':'hn','El Salvador':'sv','Trinidad':'tt','Trinidad and Tobago':'tt',
+  'Cuba':'cu','Guatemala':'gt','Haiti':'ht',
+  'Iraq':'iq','Uzbekistan':'uz','Oman':'om','Bahrain':'bh','Jordan':'jo',
+  'Lebanon':'lb','Syria':'sy','Kyrgyzstan':'kg','Tajikistan':'tj',
+  'Czech Republic':'cz','Slovakia':'sk','Hungary':'hu','Romania':'ro',
+  'Austria':'at','Greece':'gr','Bulgaria':'bg','Albania':'al',
+  'Iceland':'is','Norway':'no','Sweden':'se','Finland':'fi',
+  'Paraguay':'py','Bosnia-Herzegovina':'ba','Bosnia and Herzegovina':'ba',
+  'Curaçao':'cw','Curacao':'cw','Cape Verde':'cv',
 };
-const flag = n => F[n] || '🏳️';
+const flag = n => {
+  const c = ISO[n];
+  if (!c) return '<span style="font-size:.9rem;vertical-align:middle">🏳️</span>';
+  return `<img src="https://flagcdn.com/w20/${c}.png" srcset="https://flagcdn.com/w40/${c}.png 2x" alt="${n}" style="width:20px;height:14px;object-fit:cover;border-radius:2px;vertical-align:middle;margin-right:2px;display:inline-block">`;
+};
 
 /* ===== 한글 국가명 (2026 본선 확정 48개국 / 12개조) =====
    TheSportsDB 응답의 영문 팀명을 키로 사용 — 조 배정은 실측 데이터(eventsday.php의 strGroup)와
