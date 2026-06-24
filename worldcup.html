@@ -91,6 +91,11 @@
     .adv-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle;flex-shrink:0}
 
     @media(max-width:500px){.team{font-size:.76rem}.mid{min-width:90px}.s-inp{width:34px;height:30px}.bet-pname{font-size:.76rem}}
+
+    /* 스크롤 광고 */
+    .scroll-ad{display:block;border-radius:12px;overflow:hidden;box-shadow:0 3px 14px rgba(0,0,0,.12);opacity:0;transform:translateY(36px);transition:opacity .65s ease,transform .65s ease;cursor:pointer}
+    .scroll-ad.visible{opacity:1;transform:translateY(0)}
+    .scroll-ad img{width:100%;display:block}
   </style>
 </head>
 <body>
@@ -119,6 +124,11 @@
     </div>
   </div>
 
+  <!-- 광고 1: 노트북 -->
+  <a href="tel:02-573-1120" class="scroll-ad" style="transition-delay:0s">
+    <img src="./images/ad-notebook.png" alt="삼성 노트북 NT750XGR-A71AG">
+  </a>
+
   <!-- ② 경기 & 예측 -->
   <div class="card">
     <div class="card-title">
@@ -146,6 +156,11 @@
     </div>
   </div>
 
+  <!-- 광고 2: 모니터 -->
+  <a href="tel:02-573-1120" class="scroll-ad" style="transition-delay:0s">
+    <img src="./images/ad-monitor.png" alt="삼성 모니터 LS24D304GAKXKR">
+  </a>
+
   <!-- ③ 그룹 순위 -->
   <div class="card" id="standings-card" style="display:none">
     <div class="card-title">📊 그룹 순위 현황</div>
@@ -153,116 +168,10 @@
     <div id="standings-content"></div>
   </div>
 
-  <!-- 광고 캐러셀 (스크롤 진입 시 페이드인, 4초마다 자동 슬라이드) -->
-  <div id="ad-banner" style="opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease;border-radius:14px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,.13)">
-    <style>
-      .ad-wrap{position:relative;overflow:hidden;background:#1255b8;font-family:Arial,sans-serif}
-      .ad-slides{display:flex;transition:transform .5s ease}
-      .ad-slide{min-width:100%;flex-shrink:0}
-      .ad-top{background:#1255b8;color:#fff;text-align:center;padding:11px 16px;font-size:1.05rem;font-weight:800;letter-spacing:.5px}
-      .ad-body{background:#fff;display:flex;align-items:center;gap:12px;padding:16px 20px;min-height:150px}
-      .ad-specs{flex:1;font-size:.82rem;line-height:1.9}
-      .ad-specs .ck{color:#1255b8;font-weight:700;margin-right:4px}
-      .ad-specs .ck.r{color:#e74c3c}
-      .ad-specs .hl{background:#ffff00;padding:0 4px;font-weight:700;color:#000}
-      .ad-img{width:220px;flex-shrink:0;text-align:center}
-      .ad-img img{max-width:100%;max-height:130px;object-fit:contain}
-      .ad-bot{background:#1255b8;color:#fff;text-align:center;padding:10px 16px}
-      .ad-bot-sub{font-size:.78rem;margin-bottom:2px;opacity:.9}
-      .ad-bot-main{font-size:1rem;font-weight:800}
-      .ad-dots{display:flex;justify-content:center;gap:6px;padding:8px 0;background:#0d43a0}
-      .ad-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.35);cursor:pointer;transition:background .2s}
-      .ad-dot.on{background:#fff}
-      .ad-arrows{position:absolute;top:50%;transform:translateY(-50%);width:100%;display:flex;justify-content:space-between;pointer-events:none;padding:0 8px}
-      .ad-arr{pointer-events:all;background:rgba(0,0,0,.25);color:#fff;border:none;border-radius:50%;width:28px;height:28px;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
-      .ad-arr:hover{background:rgba(0,0,0,.5)}
-      @media(max-width:500px){.ad-img{width:130px}.ad-body{gap:8px;padding:12px 14px}.ad-specs{font-size:.76rem}}
-    </style>
-    <div class="ad-wrap">
-      <div class="ad-slides" id="adSlides">
-
-        <!-- 슬라이드 1: 노트북 -->
-        <div class="ad-slide">
-          <div class="ad-top">NT750XGR-A71AG</div>
-          <div class="ad-body">
-            <div class="ad-specs">
-              <div><span class="ck">✔</span> 삼성 노트북</div>
-              <div><span class="ck r">✔</span> <strong>i7-1355U</strong></div>
-              <div><span class="ck">✔</span> 15.6" FHD</div>
-              <div><span class="ck">✔</span> LP 16GD4</div>
-              <div><span class="ck">✔</span> 512GS</div>
-              <div><span class="ck">✔</span> IRES XE</div>
-              <div><span class="ck r">✔</span> <span class="hl">FreeDOS</span></div>
-            </div>
-            <div class="ad-img">
-              <img src="./images/ad-notebook.png" alt="삼성 노트북 NT750XGR-A71AG" style="max-width:100%;max-height:130px;object-fit:contain">
-            </div>
-          </div>
-          <div class="ad-bot">
-            <div class="ad-bot-sub">삼성 B2B 특판. 유통 전문점</div>
-            <div class="ad-bot-main">다정씨앤씨 ☎ 02-573-1120</div>
-          </div>
-        </div>
-
-        <!-- 슬라이드 2: 모니터 -->
-        <div class="ad-slide">
-          <div class="ad-top">LS24D304GAKXKR</div>
-          <div class="ad-body">
-            <div class="ad-specs">
-              <div><span class="ck">✔</span> 삼성 모니터</div>
-              <div><span class="ck">✔</span> 24"</div>
-              <div><span class="ck">✔</span> LED</div>
-              <div><span class="ck">✔</span> 1920×1080</div>
-              <div><span class="ck">✔</span> 250cd</div>
-              <div><span class="ck">✔</span> 1000:1</div>
-              <div><span class="ck">✔</span> 5ms</div>
-            </div>
-            <div class="ad-img">
-              <img src="./images/ad-monitor.png" alt="삼성 모니터 LS24D304GAKXKR" style="max-width:100%;max-height:130px;object-fit:contain">
-            </div>
-          </div>
-          <div class="ad-bot">
-            <div class="ad-bot-sub">삼성 B2B 특판. 유통 전문점</div>
-            <div class="ad-bot-main">다정씨앤씨 ☎ 02-573-1120</div>
-          </div>
-        </div>
-
-        <!-- 슬라이드 3: 데스크탑 -->
-        <div class="ad-slide">
-          <div class="ad-top">DM501THA-UR512</div>
-          <div class="ad-body">
-            <div class="ad-specs">
-              <div><span class="ck">✔</span> 삼성 데스크탑</div>
-              <div><span class="ck r">✔</span> <strong>Ultra5-225</strong></div>
-              <div><span class="ck">✔</span> 16GD5-5600</div>
-              <div><span class="ck">✔</span> 256GS</div>
-              <div><span class="ck">✔</span> DVMT</div>
-              <div><span class="ck">✔</span> 500W</div>
-              <div><span class="ck">✔</span> 11-in-1</div>
-            </div>
-            <div class="ad-img">
-              <img src="./images/ad-desktop.png" alt="삼성 데스크탑 DM501THA-UR512" style="max-width:100%;max-height:130px;object-fit:contain">
-            </div>
-          </div>
-          <div class="ad-bot">
-            <div class="ad-bot-sub">삼성 B2B 특판. 유통 전문점</div>
-            <div class="ad-bot-main">다정씨앤씨 ☎ 02-573-1120</div>
-          </div>
-        </div>
-
-      </div><!-- /ad-slides -->
-
-      <div class="ad-arrows">
-        <button class="ad-arr" onclick="adMove(-1)">&#8249;</button>
-        <button class="ad-arr" onclick="adMove(1)">&#8250;</button>
-      </div>
-    </div>
-    <div class="ad-dots" id="adDots">
-      <div class="ad-dot on" onclick="adGoTo(0)"></div>
-      <div class="ad-dot"    onclick="adGoTo(1)"></div>
-      <div class="ad-dot"    onclick="adGoTo(2)"></div>
-    </div>
-  </div>
+  <!-- 광고 3: 데스크탑 -->
+  <a href="tel:02-573-1120" class="scroll-ad" style="transition-delay:0s">
+    <img src="./images/ad-desktop.png" alt="삼성 데스크탑 DM501THA-UR512">
+  </a>
 
   <!-- ④ 종합 랭킹 -->
   <div class="card">
@@ -1356,31 +1265,19 @@ async function startAIProgress() {
 }
 
 /* ===== INIT ===== */
-/* ===== 광고 캐러셀 ===== */
-let adIdx = 0, adTotal = 3, adTimer = null;
-
-function adGoTo(n) {
-  adIdx = (n + adTotal) % adTotal;
-  document.getElementById('adSlides').style.transform = `translateX(-${adIdx * 100}%)`;
-  document.querySelectorAll('.ad-dot').forEach((d,i) => d.classList.toggle('on', i === adIdx));
-}
-function adMove(dir) { adGoTo(adIdx + dir); resetAdTimer(); }
-function resetAdTimer() {
-  if (adTimer) clearInterval(adTimer);
-  adTimer = setInterval(() => adGoTo(adIdx + 1), 4000);
-}
+/* ===== 스크롤 광고 페이드인 ===== */
 function initAdBanner() {
-  const banner = document.getElementById('ad-banner');
-  if (!banner) return;
+  const ads = document.querySelectorAll('.scroll-ad');
+  if (!ads.length) return;
   const obs = new IntersectionObserver(entries => {
-    if (entries[0].isIntersecting) {
-      banner.style.opacity = '1';
-      banner.style.transform = 'translateY(0)';
-      resetAdTimer();
-      obs.disconnect();
-    }
-  }, { threshold: 0.1 });
-  obs.observe(banner);
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  ads.forEach(ad => obs.observe(ad));
 }
 
 document.addEventListener('DOMContentLoaded', () => {
